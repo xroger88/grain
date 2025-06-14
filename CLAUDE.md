@@ -10,15 +10,17 @@ This is a Clojure Polylith workspace called "grain" organized as a hexagonal/com
 
 The system is built around CQRS (Command Query Responsibility Segregation) and event sourcing patterns:
 
-- **Command Processing**: `command-processor`, `command-request-handler`, `command-schema`
+- **Command Processing**: `command-processor` (includes schemas), `command-request-handler`
 - **Query Processing**: `query-processor`, `query-request-handler`, `query-schema`  
-- **Event Management**: `event-store`, `event-schema`
+- **Event Management**: `event-store` (contains protocols and core logic), `event-store-postgres` (PostgreSQL implementation)
+- **Task Management**: `todo-processor`
 - **Infrastructure**: `webserver`, `pubsub`, `core-async-thread-pool`, `periodic-task`
 - **Utilities**: `anomalies`, `time`, `schema-util`, `mulog-aws-cloudwatch-emf-publisher`
 
 ### Projects
 
-- `grain-core`: Main project with most components (has warnings about unnecessary components)
+- `grain-core`: Main project with most components
+- `grain-event-store-postgres`: Specialized project for PostgreSQL event store functionality
 - `development`: Development environment project with `:dev` alias
 
 ### Component Structure
@@ -26,7 +28,15 @@ The system is built around CQRS (Command Query Responsibility Segregation) and e
 Each component follows the standard Polylith pattern:
 - `interface.clj`: Public API functions that delegate to `core.clj`
 - `core.clj`: Implementation logic
+- `interface/` subdirectory: Contains protocols, schemas, and other interface definitions
 - Resources and tests in standard locations
+
+### Protocol-Based Architecture
+
+Key components use protocol-based abstraction for extensibility:
+- **Event Store**: Protocol defined in `event-store/interface/protocols.clj`, implemented by `event-store-postgres`
+- **Pub/Sub**: Protocol in `pubsub/core/protocol.clj` with core.async implementation
+- Multi-methods used for type dispatch (e.g., event store creation by connection type)
 
 ## Common Commands
 
@@ -49,6 +59,7 @@ clojure -M:poly test brick:component-name
 
 # Run tests for specific project  
 clojure -M:poly test project:grain-core
+clojure -M:poly test project:grain-event-store-postgres
 ```
 
 ### Polylith Commands
@@ -69,10 +80,11 @@ clojure -M:poly shell
 ## Key Patterns
 
 - All components expose their public API through `interface.clj` 
-- Event store supports PostgreSQL backend (`event_store/core/postgres.clj`)
+- Protocols are defined in `interface/protocols.clj` within components to avoid circular dependencies
+- Event store supports PostgreSQL backend via separate `event-store-postgres` component
 - Pub/sub uses core.async implementation (`pubsub/core/core_async.clj`)
 - Schema validation uses custom utilities and Malli
-- Components use protocol-based abstraction where needed (event store, pubsub)
+- Components include schemas in `interface/schemas.clj` when needed
 
 ## Testing
 
