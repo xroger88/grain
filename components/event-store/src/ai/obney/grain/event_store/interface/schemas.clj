@@ -1,8 +1,8 @@
-(ns ai.obney.grain.event-schema.interface
+(ns ai.obney.grain.event-store.interface.schemas
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]))
 
-(defschemas schemas 
-  {::event-id [:uuid]
+(defschemas schemas
+  {::event-id :uuid
    ::event-name :qualified-keyword
    ::event-timestamp :time/offset-date-time
    ::entity-id :uuid

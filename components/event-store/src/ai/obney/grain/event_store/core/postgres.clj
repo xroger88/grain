@@ -1,6 +1,6 @@
 (ns ai.obney.grain.event-store.core.postgres
   (:require [ai.obney.grain.event-store.core.protocol :as p :refer [EventStore]]
-            [ai.obney.grain.event-schema.interface :as schemas]
+            [ai.obney.grain.event-store.interface.schemas :as schemas]
             [next.jdbc :as jdbc]
             [com.brunobonacci.mulog :as u]
             [integrant.core :as ig]
@@ -297,7 +297,7 @@
                  ::schemas/event-name keyword
                  ::schemas/event-timestamp #(ai.obney.grain.time.interface/now-from-str %)}}))
 
-  (m/encode :ai.obney.grain.event-schema.interface/event
+  (m/encode :ai.obney.grain.event-store.interface.schemas/event
             {:event/id (random-uuid)
              :event/entity-id (random-uuid)
              :event/entity-version 1

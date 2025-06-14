@@ -1,6 +1,6 @@
 (ns ai.obney.grain.command-request-handler.core
   (:require [ai.obney.grain.anomalies.interface :refer [anomaly?]]
-            [ai.obney.grain.command-schema.interface :as command-schema]
+            [ai.obney.grain.command-processor.interface.schemas :as command-schema]
             [ai.obney.grain.command-processor.interface :as cp]
             [ai.obney.grain.time.interface :as time]
             [clojure.core.async :as async]

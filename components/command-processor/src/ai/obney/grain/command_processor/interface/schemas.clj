@@ -1,4 +1,4 @@
-(ns ai.obney.grain.command-schema.interface
+(ns ai.obney.grain.command-processor.interface.schemas
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]))
 
 (defschemas schemas

@@ -1,7 +1,7 @@
 (ns ai.obney.grain.todo-processor.core
   (:require [cognitect.anomalies :as anom]
             [com.brunobonacci.mulog :as u]
-            [ai.obney.grain.event-schema.interface :as event-schema]
+            [ai.obney.grain.event-store.interface.schemas :as event-schema]
             [ai.obney.grain.event-store.interface :as event-store]
             [ai.obney.grain.pubsub.interface :as pubsub]
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]

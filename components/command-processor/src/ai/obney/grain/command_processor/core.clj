@@ -2,8 +2,8 @@
   (:require
    [ai.obney.grain.core-async-thread-pool.interface :as thread-pool]
    [ai.obney.grain.event-store.interface :as event-store]
-   [ai.obney.grain.event-schema.interface :as event-schema]
-   [ai.obney.grain.command-schema.interface :as command-schema]
+   [ai.obney.grain.event-store.interface.schemas :as event-schema]
+   [ai.obney.grain.command-processor.interface.schemas :as command-schema]
    [ai.obney.grain.pubsub.interface :as pubsub]
    [ai.obney.grain.anomalies.interface :refer [anomaly?]]
    [clojure.core.async :as async]

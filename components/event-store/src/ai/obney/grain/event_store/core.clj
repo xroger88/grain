@@ -3,7 +3,7 @@
             [ai.obney.grain.event-store.core.protocol :as p]
             [ai.obney.grain.pubsub.interface :as pubsub]
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]
-            [ai.obney.grain.event-schema.interface :as event-schema]
+            [ai.obney.grain.event-store.interface.schemas :as event-schema]
             [ai.obney.grain.time.interface :as time]
             [malli.core :as mc]
             [com.brunobonacci.mulog :as u]
