@@ -1,17 +1,12 @@
 (ns ai.obney.grain.command-processor.core
   (:require
-   [ai.obney.grain.core-async-thread-pool.interface :as thread-pool]
    [ai.obney.grain.event-store.interface :as event-store]
-   [ai.obney.grain.event-store.interface.schemas :as event-schema]
    [ai.obney.grain.command-processor.interface.schemas :as command-schema]
-   [ai.obney.grain.pubsub.interface :as pubsub]
    [ai.obney.grain.anomalies.interface :refer [anomaly?]]
-   [clojure.core.async :as async]
    [com.brunobonacci.mulog :as u]
    [cognitect.anomalies :as anom]
    [malli.core :as mc]
-   [malli.error :as me]
-   [integrant.core :as ig]))
+   [malli.error :as me]))
 
 (defn execute-command
   [handler {:keys [event-store] :as context}]

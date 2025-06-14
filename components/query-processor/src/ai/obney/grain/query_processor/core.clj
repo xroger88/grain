@@ -1,13 +1,9 @@
 (ns ai.obney.grain.query-processor.core
   (:require
-   [ai.obney.grain.core-async-thread-pool.interface :as thread-pool]
-   [ai.obney.grain.anomalies.interface :refer [anomaly?]]
-   [clojure.core.async :as async]
    [com.brunobonacci.mulog :as u]
    [cognitect.anomalies :as anom]
    [malli.core :as mc]
-   [malli.error :as me]
-   [integrant.core :as ig]))
+   [malli.error :as me]))
 
 (defn process-query [{:keys [query query-registry] :as context}]
   (u/trace

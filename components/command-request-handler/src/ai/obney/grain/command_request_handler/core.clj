@@ -68,14 +68,13 @@
       (assoc-in [:headers "Content-Type"] "application/json")
       (update :body json/write-str)))
 
-(defn handle-command [{:keys [command-processor] :as config} {:keys [request] :as context}]
+(defn handle-command [config {:keys [request] :as context}]
   (async/go
     (u/trace
      ::handle-command
      [::request request]
      (try
-       (let [return-chan (async/chan)
-             command (decode-command (get-in request [:json-params :command]))]
+       (let [command (decode-command (get-in request [:json-params :command]))]
          (if-let [error (me/humanize (mc/explain ::command-schema/command command))]
            (assoc context :response
                   (prep-response

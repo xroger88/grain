@@ -10,7 +10,7 @@
      :pub pub}))
 
 (defn stop
-  [{{:keys [chan pub]} :state}]
+  [{{:keys [chan]} :state}]
   (async/close! chan))
 
 (defn pub
