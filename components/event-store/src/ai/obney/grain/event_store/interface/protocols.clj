@@ -1,4 +1,6 @@
-(ns ai.obney.grain.event-store.core.protocol)
+(ns ai.obney.grain.event-store.interface.protocols)
+
+(defmulti start-event-store #(get-in % [:conn :type]))
 
 (defprotocol EventStore
   (start [this])

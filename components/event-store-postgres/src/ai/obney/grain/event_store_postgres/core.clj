@@ -1,13 +1,11 @@
-(ns ai.obney.grain.event-store.core.postgres
-  (:require [ai.obney.grain.event-store.core.protocol :as p :refer [EventStore]]
-            [ai.obney.grain.event-store.interface.schemas :as schemas]
+(ns ai.obney.grain.event-store-postgres.core
+  (:require [ai.obney.grain.event-store.interface.protocols :as p :refer [EventStore start-event-store]]
             [next.jdbc :as jdbc]
             [com.brunobonacci.mulog :as u]
             [integrant.core :as ig]
             [hikari-cp.core :as hikari]
             [clojure.data.json :as json]
             [ai.obney.grain.time.interface :as time]
-            [malli.transform :as mt]
             [cognitect.anomalies :as anom]
             [clojure.string :as string]))
 
@@ -212,103 +210,7 @@
     [this entity-id]
     (current-entity-version this entity-id)))
 
-
-(comment
-
-  (u/start-publisher! {:type :console
-                       :pretty? true})
-
-  (def rec (p/start
-            (->PostgresEventStore
-             {:server-name "localhost"
-              :port-number 5432
-              :username "postgres"
-              :password "password"
-              :database-name "obneyai"})))
-
-  (-> (get-events rec {:entity-id #uuid "98ba9843-1100-5c06-b701-0eaf9a390ded"}))
-
-  (current-entity-version rec (random-uuid))
-
-  (p/stop rec)
-
-  (jdbc/execute!
-   (get-in rec [:state ::connection-pool])
-   ["INSERT INTO 
-     obneyai.events 
-    (event_id, event_name, entity_id, entity_version, event) 
-     VALUES 
-    (?, 
-     ?,
-     ?,
-     ?,
-     ?::jsonb)"
-    (random-uuid)
-    "vector-store/namespace-created-v1"
-    (random-uuid)
-    2
-    (clojure.data.json/write-str
-     {:event/id (random-uuid)
-      :event/entity-id (random-uuid)
-      :event/entity-version 2
-      :event/name "vector-store/namespace-created-v1"
-      :event/timestamp (str (ai.obney.grain.time.interface/now))
-      :namespaces ["test1" "test2"]}
-     :key-fn #(if (qualified-keyword? %)
-                (str (namespace %) "/" (name %))
-                (str (name %))))])
-
-
-
-  {:event/id (random-uuid)
-   :event/entity-id (random-uuid)
-   :event/entity-version 2
-   :event/name :vector-store/namespace-created-v1
-   :event/timestamp (ai.obney.grain.time.interface/now)
-   :namespaces ["test1" "test2"]}
-
-
-  (store-events
-   rec
-   {:events [{:event/id (random-uuid)
-              :event/entity-id (random-uuid)
-              :event/entity-version 1
-              :event/name :vector-store/namespace-created-v1
-              :event/timestamp (ai.obney.grain.time.interface/now)
-              :namespaces ["test1" "test2"]}]})
-
-
-
-
-
-  (require '[malli.core :as m])
-
-
-  (defn event-transformer
-    []
-    (mt/transformer
-     {:name ::event
-      :encoders {::schemas/entity-id str
-                 ::schemas/event-id str
-                 ::schemas/event-name key-fn
-                 ::schemas/event-timestamp str}
-      :decoders {::schemas/entity-id #(java.util.UUID/fromString %)
-                 ::schemas/event-id #(java.util.UUID/fromString %)
-                 ::schemas/event-name keyword
-                 ::schemas/event-timestamp #(ai.obney.grain.time.interface/now-from-str %)}}))
-
-  (m/encode :ai.obney.grain.event-store.interface.schemas/event
-            {:event/id (random-uuid)
-             :event/entity-id (random-uuid)
-             :event/entity-version 1
-             :event/name :vector-store/namespace-created-v1
-             :event/timestamp (ai.obney.grain.time.interface/now)
-             :namespaces ["test1" "test2"]}
-            (mt/json-transformer))
-
-
-
-
-
-
-  "")
+(defmethod start-event-store :postgres
+  [config]
+  (p/start
+   (->PostgresEventStore (dissoc (:conn config) :type))))

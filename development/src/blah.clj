@@ -6,6 +6,7 @@
             [ai.obney.grain.core-async-thread-pool.interface]
             [ai.obney.grain.event-store.interface.schemas]
             [ai.obney.grain.event-store.interface]
+            [ai.obney.grain.event-store-postgres.interface]
             [ai.obney.grain.mulog-aws-cloudwatch-emf-publisher.interface]
             [ai.obney.grain.periodic-task.interface]
             [ai.obney.grain.pubsub.interface]

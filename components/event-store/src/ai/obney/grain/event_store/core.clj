@@ -1,21 +1,13 @@
 (ns ai.obney.grain.event-store.core
-  (:require [ai.obney.grain.event-store.core.postgres :as postgres]
-            [ai.obney.grain.event-store.core.protocol :as p]
-            [ai.obney.grain.pubsub.interface :as pubsub]
+  (:require [ai.obney.grain.pubsub.interface :as pubsub]
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]
             [ai.obney.grain.event-store.interface.schemas :as event-schema]
+            [ai.obney.grain.event-store.interface.protocols :as p :refer [start-event-store]]
             [ai.obney.grain.time.interface :as time]
             [malli.core :as mc]
             [com.brunobonacci.mulog :as u]
             [cognitect.anomalies :as anom]
             [clj-uuid :as uuid]))
-
-(defmulti start-event-store #(get-in % [:conn :type]))
-
-(defmethod start-event-store :postgres
-  [config]
-  (p/start
-   (postgres/->PostgresEventStore (dissoc (:conn config) :type))))
 
 (defmethod start-event-store :default
   [{:keys [type]}]

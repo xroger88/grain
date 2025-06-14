@@ -7,4 +7,5 @@
  :tag-patterns {:stable "stable-*"
                 :release "v[0-9]*"}
  :projects {"development" {:alias "dev"}
-            "grain-core" {:alias "core"}}}
+            "grain-core" {:alias "core"}
+            "grain-event-store-postgres" {:alias "es-pg"}}}
