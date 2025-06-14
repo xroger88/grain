@@ -1,0 +1,1 @@
+{:lint-as {ai.obney.schema-util.interface/defschemas clojure.core/def}}

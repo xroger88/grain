@@ -1,0 +1,4 @@
+{:paths ["src" "resources"]
+ :deps {jarohen/chime {:mvn/version "0.3.3"}}
+ :aliases {:test {:extra-paths ["test"]
+                  :extra-deps {}}}}

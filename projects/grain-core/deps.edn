@@ -1,0 +1,20 @@
+{:deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        poly/command-schema {:local/root "../../components/command-schema"}
+        poly/command-processor {:local/root "../../components/command-processor"}
+        poly/command-request-handler {:local/root "../../components/command-request-handler"}
+        poly/anomalies {:local/root "../../components/anomalies"}
+        poly/time {:local/root "../../components/time"}
+        poly/schema-util {:local/root "../../components/schema-util"}
+        poly/core-async-thread-pool {:local/root "../../components/core-async-thread-pool"}
+        poly/webserver {:local/root "../../components/webserver"}
+        poly/query-processor {:local/root "../../components/query-processor"}
+        poly/query-request-handler {:local/root "../../components/query-request-handler"}
+        poly/query-schema {:local/root "../../components/query-schema"}
+        poly/event-store {:local/root "../../components/event-store"}
+        poly/event-schema {:local/root "../../components/event-schema"}
+        poly/pubsub {:local/root "../../components/pubsub"}
+        poly/todo-processor {:local/root "../../components/todo-processor"}
+        poly/periodic-task {:local/root "../../components/periodic-task"}}
+
+ :aliases {:test {:extra-paths []
+                  :extra-deps  {}}}}
