@@ -8,4 +8,5 @@
                 :release "v[0-9]*"}
  :projects {"development" {:alias "dev"}
             "grain-core" {:alias "core"}
-            "grain-event-store-postgres" {:alias "es-pg"}}}
+            "grain-event-store-postgres" {:alias "es-pg"}
+            "grain-mulog-aws-cloudwatch-emf-publisher" {:alias "mulog-aws-emf-pub"}}}
