@@ -10,7 +10,7 @@
             [clj-uuid :as uuid]))
 
 (defmethod start-event-store :default
-  [{:keys [type]}]
+  [{{:keys [type]} :conn}]
   (throw (ex-info (format "Unsupported event store type: %s" type) {:type type})))
 
 (defn start
