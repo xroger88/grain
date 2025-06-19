@@ -1,6 +1,8 @@
 {:aliases  {:dev {:extra-paths ["development/src"]
 
                   :extra-deps {org.clojure/clojure {:mvn/version "1.12.0"}
+                               clj-http/clj-http {:mvn/version "3.13.0"}
+                               
                                ;; Components
                                poly/command-processor {:local/root "components/command-processor"}
                                poly/command-request-handler {:local/root "components/command-request-handler"}
@@ -17,8 +19,12 @@
                                poly/pubsub {:local/root "components/pubsub"}
                                poly/todo-processor {:local/root "components/todo-processor"}
                                poly/periodic-task {:local/root "components/periodic-task"}
-                               poly/mulog-aws-cloudwatch-emf-publisher {:local/root "components/mulog-aws-cloudwatch-emf-publisher"}}}
-            
+                               poly/mulog-aws-cloudwatch-emf-publisher {:local/root "components/mulog-aws-cloudwatch-emf-publisher"}
+
+                               ;; Examples
+                               poly/example-base {:local/root "bases/example-base"}
+                               poly/example-service {:local/root "components/example-service"}}}
+
             :test {:extra-paths []}
 
             :poly {:main-opts ["-m" "polylith.clj.core.poly-cli.core"]
