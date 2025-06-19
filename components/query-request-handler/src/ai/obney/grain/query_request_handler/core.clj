@@ -60,7 +60,8 @@
     (clojure.walk/keywordize-keys x)
     (assoc x :query/id (random-uuid))
     (assoc x :query/timestamp (time/now))
-    (mc/decode ::query-schema/query x json-transformer)))
+    (mc/decode ::query-schema/query x json-transformer)
+    (mc/decode (:query/name x) x json-transformer)))
 
 (defn prep-response
   [response]
