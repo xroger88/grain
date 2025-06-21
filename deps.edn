@@ -20,6 +20,7 @@
                                poly/todo-processor {:local/root "components/todo-processor"}
                                poly/periodic-task {:local/root "components/periodic-task"}
                                poly/mulog-aws-cloudwatch-emf-publisher {:local/root "components/mulog-aws-cloudwatch-emf-publisher"}
+                               poly/event-model {:local/root "components/event-model"}
 
                                ;; Examples
                                poly/example-base {:local/root "bases/example-base"}

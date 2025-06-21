@@ -16,6 +16,7 @@ The system is built around CQRS (Command Query Responsibility Segregation) and e
 - **Task Management**: `todo-processor`
 - **Infrastructure**: `webserver`, `pubsub`, `core-async-thread-pool`, `periodic-task`
 - **Utilities**: `anomalies`, `time`, `schema-util`, `mulog-aws-cloudwatch-emf-publisher`
+- **Event Model**: `event-model` (meta-schema for describing system architecture and flows)
 - **Example Service**: `example-service` (demonstrates CQRS/ES patterns with counter domain)
 
 ### Schema System
@@ -27,6 +28,7 @@ The system is built around CQRS (Command Query Responsibility Segregation) and e
 - **Automatic Validation**: The `command-processor`, `event-store`, and `query-processor` automatically validate against schemas using the command/event/query name as the key
 - **Centralized Registry**: Components define schemas using the `defschemas` macro from `schema-util`, which automatically registers them in a global mutable registry
 - **Malli-Based**: Uses Malli for schema definition and validation with built-in time and core.async channel schemas
+- **Event Model Meta-Schema**: The `event-model` component provides comprehensive schemas for describing entire system architectures, including commands, events, views, todo-processors, screens, and flows
 
 ### Projects
 
@@ -174,6 +176,42 @@ Bases wire together the entire application using Integrant for dependency inject
 - CloudWatch EMF publisher for metrics
 - Tracing throughout the application
 - Log sanitization for sensitive data
+
+## System Architecture Modeling
+
+### Event Model Component (`event-model`)
+
+The `event-model` component provides a comprehensive meta-schema for describing and validating entire system architectures:
+
+#### Naming Conventions
+- **Commands**: Must use `:command/` namespace (e.g., `:command/create-user`)
+- **Events**: Must use `:event/` namespace (e.g., `:event/user-created`)
+- **Views**: Must use `:view/` namespace (e.g., `:view/user-list`)
+- **Todo Processors**: Must use `:todo-processor/` namespace (e.g., `:todo-processor/send-welcome-email`)
+- **Screens**: Must use `:screen/` namespace (e.g., `:screen/user-registration`)
+- **Flows**: Must use `:flow/` namespace (e.g., `:flow/user-onboarding`)
+
+#### System Flow Validation
+- **Flow Steps**: Define valid transitions between system components
+- **Valid Transitions**:
+  - `view` → `todo-processor`, `screen`, or end
+  - `todo-processor` → `command` or end
+  - `screen` → `command` or end  
+  - `command` → `event` or end
+  - `event` → `view` or end
+- **Flow Documentation**: Each flow includes description and ordered steps
+
+#### Architecture Documentation
+- **Commands**: Include description, schema, and optional given-when-then scenarios
+- **Events**: Include description and schema
+- **Views**: Include description and schema (read model projections)
+- **Todo Processors**: Include description (background event handlers)
+- **Screens**: Include description (UI components)
+
+This meta-model enables:
+- **Architecture Validation**: Ensure system flows follow valid patterns
+- **Documentation Generation**: Auto-generate system documentation
+- **Flow Analysis**: Understand system behavior and dependencies
 
 ## Development Workflow
 
