@@ -3,6 +3,7 @@
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]
             [ai.obney.grain.event-store.interface.schemas :as event-schema]
             [ai.obney.grain.event-store.interface.protocols :as p :refer [start-event-store]]
+            [ai.obney.grain.event-store.core.in-memory]
             [ai.obney.grain.time.interface :as time]
             [malli.core :as mc]
             [com.brunobonacci.mulog :as u]
