@@ -1,5 +1,6 @@
 (ns ai.obney.grain.event-store-postgres.core
   (:require [ai.obney.grain.event-store.interface.protocols :as p :refer [EventStore start-event-store]]
+            [ai.obney.grain.event-store.interface.schemas :as event-schemas]
             [next.jdbc :as jdbc]
             [com.brunobonacci.mulog :as u]
             [integrant.core :as ig]
@@ -7,7 +8,9 @@
             [clojure.data.json :as json]
             [ai.obney.grain.time.interface :as time]
             [cognitect.anomalies :as anom]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [malli.transform :as mt]
+            [malli.core :as mc]))
 
 ;; -------------------------- ;;
 ;; Event Store Initialization ;;
@@ -109,9 +112,22 @@
               entity-id]))
       1))
 
+(def json-transformer
+  (mt/transformer
+   mt/json-transformer))
+
+(defn decode-event
+  [row]
+  (as-> row x
+    (:event x)
+    (json/read-str x :key-fn keyword)
+    (update x :event/timestamp time/now-from-str)
+    (mc/decode ::event-schemas/event x json-transformer)
+    (mc/decode (:event/name x) x json-transformer)))
+
 (defn get-events
   [event-store {:keys [entity-id selection ignore]}]
-  (let [base-query "SELECT event FROM obneyai.events"
+  (let [base-query "SELECT event::text AS event FROM obneyai.events"
         clauses (cond-> []
                   entity-id (conj "entity_id = ?")
                   selection (conj "event_name = ANY(?)")
@@ -126,13 +142,7 @@
     (reduce
      (fn [acc row]
        (conj acc
-             (-> row
-                 :events/event
-                 str
-                 (json/read-str :key-fn keyword)
-                 (update :event/name keyword)
-                 (update :event/timestamp time/now-from-str)
-                 (update :event/entity-id #(java.util.UUID/fromString %)))))
+             (decode-event row)))
      []
      (jdbc/execute!
       (get-in event-store [:state ::connection-pool])
