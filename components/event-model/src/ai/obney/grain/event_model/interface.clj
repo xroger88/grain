@@ -104,7 +104,6 @@
 
    :event-model
    [:map
-    [:version [:enum 1]]
     [:commands :commands]
     [:events :events]
     [:views :views]
