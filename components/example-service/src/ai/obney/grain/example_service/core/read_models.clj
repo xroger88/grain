@@ -13,17 +13,17 @@
 
 (defmethod apply-event :example/counter-created
   [state {:keys [counter-id name]}]
-  (assoc state (java.util.UUID/fromString counter-id)
-         {:counter/id (java.util.UUID/fromString counter-id)
+  (assoc state counter-id
+         {:counter/id counter-id
           :counter/name name}))
 
 (defmethod apply-event :example/counter-incremented
   [state {:keys [counter-id]}]
-  (update state (java.util.UUID/fromString counter-id) update :counter/value (fnil inc 0)))
+  (update state counter-id update :counter/value (fnil inc 0)))
 
 (defmethod apply-event :example/counter-decremented
   [state {:keys [counter-id]}]
-  (update state (java.util.UUID/fromString counter-id) update :counter/value (fnil dec 0)))
+  (update state counter-id update :counter/value (fnil dec 0)))
 
 (defmethod apply-event :default
   [state _event]
