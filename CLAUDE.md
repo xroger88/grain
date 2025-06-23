@@ -109,6 +109,7 @@ clojure -M:poly create workspace
 - **Schema validation is mandatory** - every command, event, and query requires a schema definition
 - **Service components MUST include schemas** in `interface/schemas.clj` defining all commands, events, and queries
 - Service components organize domain logic into separate namespaces: `commands.clj`, `queries.clj`, `read-models.clj`, `todo-processors.clj`, `periodic-tasks.clj`
+- **Event structure**: Events accessed from the event-store never have `:event/body` (unlike the event constructor function in the event-store interface which does include a body key)
 
 ## CQRS/Event Sourcing Architecture Patterns
 
