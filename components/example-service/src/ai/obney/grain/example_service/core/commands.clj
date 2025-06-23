@@ -56,7 +56,22 @@
       {::anom/category ::anom/not-found
        ::anom/message (format "Counter with ID '%s' not found." counter-id)})))
 
+(defn calculate-average-counter-value
+  "Calculates the average value of all counters."
+  [context]
+  (let [state (read-models/root context)]
+    {:command-result/events
+     [(event
+       {:name :example/average-calculated
+        :entity-id uuid/+null+
+        :body {:value (/ (double (->> state
+                                      vals
+                                      (map :counter/value)
+                                      (reduce + 0)))
+                         (double (count state)))}})]}))
+
 (def commands
   {:example/create-counter {:handler-fn #'create-counter}
    :example/increment-counter {:handler-fn #'increment-counter}
-   :example/decrement-counter {:handler-fn #'decrement-counter}})
+   :example/decrement-counter {:handler-fn #'decrement-counter}
+   :example/calculate-average-counter-value {:handler-fn #'calculate-average-counter-value}})

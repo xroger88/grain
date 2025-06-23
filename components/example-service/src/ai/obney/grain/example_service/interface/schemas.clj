@@ -19,7 +19,10 @@
 
    :example/decrement-counter
    [:map
-    [:counter-id :uuid]]})
+    [:counter-id :uuid]]
+   
+   :example/calculate-average-counter-value
+   [:map]})
 
 (defschemas events
   {:example/counter-created
