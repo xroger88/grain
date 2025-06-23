@@ -18,6 +18,9 @@
    :screen-name [:fn #(and (qualified-keyword? %)
                            (= "screen" (namespace %)))]
 
+   :periodic-task-name [:fn #(and (qualified-keyword? %)
+                                  (= "periodic-task" (namespace %)))]
+
    :flow-name [:fn #(and (qualified-keyword? %)
                          (= "flow" (namespace %)))]
 
@@ -52,6 +55,11 @@
    :todo-processor [:map
                     [:name :todo-processor-name]
                     [:description :string]]
+   
+   :periodic-task [:map
+                   [:name :periodic-task-name]
+                   [:description :string]
+                   [:schedule :string]]
 
    :screen [:map
             [:name :screen-name]
@@ -65,16 +73,19 @@
 
    :todo-processors [:map-of :todo-processor-name :todo-processor]
 
+   :periodic-tasks [:map-of :periodic-task-name :periodic-task]
+
    :screens [:map-of :screen-name :screen]
 
    :valid-step [:fn #(let [connect-from-type (when (:from %) (namespace (:from %)))
                            connect-to-type (when (:to %) (namespace (:to %)))]
                        (case connect-from-type
-                         "view" (contains? #{"todo-processor" "screen" nil} connect-to-type)
+                         "view" (contains? #{"todo-processor" "screen" "periodic-task" nil} connect-to-type)
                          "todo-processor" (contains? #{"command" nil} connect-to-type)
                          "screen" (contains? #{"command" nil} connect-to-type)
                          "command" (contains? #{"event" nil} connect-to-type)
                          "event" (contains? #{"view" nil} connect-to-type)
+                         "periodic-task" (contains? #{"command" nil} connect-to-type)
                          nil true))]
 
    :step [:and
@@ -86,12 +97,14 @@
                    :view-name
                    :todo-processor-name
                    :screen-name
+                   :periodic-task-name
                    :nil]]
            [:to [:or
                  :command-name
                  :event-name
                  :view-name
                  :todo-processor-name
+                 :periodic-task-name
                  :screen-name
                  :nil]]]]
 
@@ -104,10 +117,11 @@
 
    :event-model
    [:map
-    [:commands :commands]
-    [:events :events]
-    [:views :views]
-    [:todo-processors :todo-processors]
-    [:screens :screens]
-    [:flows :flows]]})
+    [:commands {:optional true} :commands]
+    [:events {:optional true} :events]
+    [:views {:optional true} :views]
+    [:todo-processors {:optional true} :todo-processors]
+    [:periodic-tasks {:optional true} :periodic-tasks]
+    [:screens {:optional true} :screens]
+    [:flows {:optional true} :flows]]})
 
