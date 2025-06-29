@@ -1,6 +1,6 @@
 (ns ai.obney.grain.command-processor.core
   (:require
-   [ai.obney.grain.event-store.interface :as event-store]
+   [ai.obney.grain.event-store-v2.interface :as event-store]
    [ai.obney.grain.command-processor.interface.schemas :as command-schema]
    [ai.obney.grain.anomalies.interface :refer [anomaly?]]
    [com.brunobonacci.mulog :as u]
@@ -17,7 +17,7 @@
     (when (anomaly? result)
       (u/log ::error-executing-command ::anomaly result))
     (if-let [events (:command-result/events result)]
-      (let [event-store-result (event-store/store-events event-store {:events events})]
+      (let [event-store-result (event-store/append event-store {:events events})]
         (if-not (anomaly? event-store-result)
           result
           (do

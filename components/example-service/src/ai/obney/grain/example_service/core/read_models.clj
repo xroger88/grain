@@ -3,13 +3,13 @@
    Events are retrieved using the event-store and the read model is built through reducing usually.
    These tend to be used by the other components of the grain app, such as commands, queries, periodic tasks, 
    and todo-processors."
-  (:require [ai.obney.grain.event-store.interface :as event-store]
+  (:require [ai.obney.grain.event-store-v2.interface :as event-store]
             [com.brunobonacci.mulog :as u]))
 
 (defmulti apply-event
   "Apply an event to the read model."
   (fn [_state event]
-    (:event/name event)))
+    (:event/type event)))
 
 (defmethod apply-event :example/counter-created
   [state {:keys [counter-id name]}]
@@ -45,12 +45,13 @@
 (defn root
   "Returns the root entity of the read model."
   [{:keys [event-store] :as _context}]
-  (let [events (event-store/get-events
+  (let [events (event-store/read
                 event-store
-                {})
+                {:types #{:example/counter-created
+                          :example/counter-incremented
+                          :example/counter-decremented}})
         state (u/trace
                ::read-model-root
-               [:event-count (count events)
-                :metric/name "ReadModelExampleRoot"]
+               [:metric/name "ReadModelExampleRoot"]
                (apply-events events))]
     state))

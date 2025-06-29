@@ -1,8 +1,8 @@
 (ns ai.obney.grain.todo-processor.core
   (:require [cognitect.anomalies :as anom]
             [com.brunobonacci.mulog :as u]
-            [ai.obney.grain.event-store.interface.schemas]
-            [ai.obney.grain.event-store.interface :as event-store]
+            [ai.obney.grain.event-store-v2.interface.schemas]
+            [ai.obney.grain.event-store-v2.interface :as event-store]
             [ai.obney.grain.pubsub.interface :as pubsub]
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]
             [integrant.core :as ig]
@@ -24,7 +24,7 @@
        (if (anomaly? result)
          (u/log ::anomaly-in-todo-processor :anomaly result)
          (when-let [events (:result/events result)]
-           (let [event-store-result (event-store/store-events event-store {:events events})]
+           (let [event-store-result (event-store/append event-store {:events events})]
              (when (anomaly? event-store-result)
                (u/log ::error-storing-events)
                {::anom/category ::anom/fault

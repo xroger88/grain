@@ -2,11 +2,11 @@
   (:require [ai.obney.grain.example-base.core :as service]
             [ai.obney.grain.command-processor.interface :as cp]
             [ai.obney.grain.query-processor.interface :as qp]
-            [ai.obney.grain.event-store.interface :as es]
+            [ai.obney.grain.event-store-v2.interface :as es]
+            [ai.obney.grain.event-store-v2.core.in-memory]
             [ai.obney.grain.example-service.interface.read-models :as rm]
             [ai.obney.grain.time.interface :as time]
-            [clj-http.client :as http]
-            [ai.obney.grain.event-store.interface :as event-store]))
+            [clj-http.client :as http]))
 
 (comment
 
@@ -32,14 +32,16 @@
 
   ;; Interact internally in the REPL with out HTTP
 
-  (cp/process-command
-   (assoc context
-          :command {:command/name :example/create-counter
-                    :command/timestamp (time/now)
-                    :command/id (random-uuid)
-                    :name "Counter B"}))
+  (try
+    (cp/process-command
+     (assoc context
+            :command {:command/name :example/create-counter
+                      :command/timestamp (time/now)
+                      :command/id (random-uuid)
+                      :name "Counter B"}))
+    (catch Exception e (ex-data e)))
 
-  (es/get-events event-store {})
+  (es/read event-store {})
 
   (qp/process-query
    (assoc context
@@ -52,17 +54,18 @@
           :query {:query/name :example/counter
                   :query/timestamp (time/now)
                   :query/id (random-uuid)
-                  :counter-id #uuid "1de099f1-d361-4e62-9452-53f6ccf2452f"}))
+                  :counter-id #uuid "40758b11-d3e9-4897-9710-1ff0e07aa57a"}))
 
   (cp/process-command
    (assoc context
           :command {:command/name :example/increment-counter
                     :command/timestamp (time/now)
                     :command/id (random-uuid)
-                    :counter-id #uuid "d2ea8475-5bac-4050-9317-6e5d42dbe729"}))
+                    :counter-id #uuid "40758b11-d3e9-4897-9710-1ff0e07aa57a"}))
 
-  
+
   (rm/root context)
+
 
 
 
