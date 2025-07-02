@@ -31,13 +31,20 @@
        :predicate-fn - A function with signature [events] that returns true or false, deciding whether the events will be stored or not.")
 
   (read [this args]
-    "Read an ordered lazy sequence of events from the event store.
+    "Read an ordered stream of events from the event store.
      
-     If no tags or types are provided, a lazy sequence of all events is returned.
+     Returns a reducible (IReduceInit + IReduce) that streams events without eagerly loading them all into memory.
+     
+     If no tags or types are provided, all events are returned.
 
      Cannot supply both :as-of and :after at the same time.
 
      May return a cognitect anomaly.
+     
+     Usage:
+     - (reduce f init (read store query))         ; Direct reduction
+     - (transduce xf f init (read store query))   ; Transducer pipeline
+     - (into [] (take 10) (read store query))     ; Collect with limit
      
      args:
      

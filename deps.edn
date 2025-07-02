@@ -17,6 +17,7 @@
                                poly/event-store {:local/root "components/event-store"}
                                poly/event-store-v2 {:local/root "components/event-store-v2"}
                                poly/event-store-postgres {:local/root "components/event-store-postgres"}
+                               poly/event-store-postgres-v2 {:local/root "components/event-store-postgres-v2"}
                                poly/pubsub {:local/root "components/pubsub"}
                                poly/todo-processor {:local/root "components/todo-processor"}
                                poly/periodic-task {:local/root "components/periodic-task"}
