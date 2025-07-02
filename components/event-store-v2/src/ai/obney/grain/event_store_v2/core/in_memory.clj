@@ -21,19 +21,38 @@
    ::read
    [:args args
     :metric/name "GrainReadEvents"]
-   (->> (-> event-store :state deref :events)
-        (filter
-         (fn [event]
-           (and
-            (or (not tags)
-                (= tags (set/intersection (:event/tags event) tags)))
-            (or (not types)
-                (contains? types (:event/type event)))
-            (cond
-              as-of (or (uuid/< (:event/id event) as-of)
-                        (uuid/= (:event/id event) as-of))
-              after (uuid/> (:event/id event) after)
-              :else true)))))))
+   (let [filtered-events (->> (-> event-store :state deref :events)
+                              (filter
+                               (fn [event]
+                                 (and
+                                  (or (not tags)
+                                      (= tags (set/intersection (:event/tags event) tags)))
+                                  (or (not types)
+                                      (contains? types (:event/type event)))
+                                  (cond
+                                    as-of (or (uuid/< (:event/id event) as-of)
+                                              (uuid/= (:event/id event) as-of))
+                                    after (uuid/> (:event/id event) after)
+                                    :else true)))))]
+     (reify
+       ;; Support streaming reduction with init value
+       clojure.lang.IReduceInit
+       (reduce [_ f init]
+         (reduce f init filtered-events))
+       ;; Support streaming reduction without init value  
+       clojure.lang.IReduce
+       (reduce [_ f]
+         (let [reduced-result 
+               (reduce
+                (fn [acc event]
+                  (if (= acc ::none)
+                    event
+                    (f acc event)))
+                ::none
+                filtered-events)]
+           (if (= reduced-result ::none)
+             (f)  ; Empty collection case
+             reduced-result)))))))
 
 (defn append
   [event-store {{:keys [predicate-fn] :as cas} :cas
