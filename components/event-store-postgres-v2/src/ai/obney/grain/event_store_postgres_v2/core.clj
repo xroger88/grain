@@ -155,9 +155,9 @@
          init
          plan))
       ;; Make compatible with transducers while retaining lazy evaluation.
-      clojure.lang.IReduce  
+      clojure.lang.IReduce
       (reduce [_ f]
-        (let [reduced-result 
+        (let [reduced-result
               (reduce
                (fn [acc row]
                  (if (= acc ::none)
@@ -167,8 +167,7 @@
                plan)]
           (if (= reduced-result ::none)
             (f)
-            reduced-result)))
-)))
+            reduced-result))))))
 
 (defn insert-events
   [conn events]
@@ -269,10 +268,17 @@
 
   (reduce
    (fn [acc event]
-     (conj acc (select-keys event (keys event))))
+     (conj acc event))
    []
    (read es {}))
 
+  
+  {:event/id #uuid "0197cbed-d1e3-70ac-8fca-a9c23706d550",
+   :event/timestamp #inst "2025-07-02T16:17:30.083469000-00:00",
+   :event/type :hello/world,
+   :event/tags #{[:user #uuid "eae56ad0-6575-418f-a5f5-bab2674ac2c9"]},
+   :user-id #uuid "eae56ad0-6575-418f-a5f5-bab2674ac2c9",
+   :message "Testing transformation"}
 
 
 
