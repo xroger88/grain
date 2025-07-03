@@ -210,7 +210,7 @@
       (jdbc/execute! conn ["SELECT id FROM grain.global_lock FOR UPDATE"])
       (if cas
         (if (predicate-fn (read event-store cas))
-          (insert-events conn events)
+          (insert-events conn events*)
           (let [anomaly  {::anom/category ::anom/conflict
                           ::anom/message "CAS failed"
                           ::cas cas}]
