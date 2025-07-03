@@ -10,6 +10,7 @@
         poly/query-request-handler {:local/root "../../components/query-request-handler"}
         poly/query-schema {:local/root "../../components/query-schema"}
         poly/event-store {:local/root "../../components/event-store"} 
+        poly/event-store-v2 {:local/root "../../components/event-store-v2"} 
         poly/pubsub {:local/root "../../components/pubsub"}
         poly/todo-processor {:local/root "../../components/todo-processor"}
         poly/periodic-task {:local/root "../../components/periodic-task"}}
