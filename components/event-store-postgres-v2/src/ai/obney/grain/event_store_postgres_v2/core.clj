@@ -202,8 +202,8 @@
                  events
                  (->event
                   {:type :grain/tx
-                   :body {:event-ids (set (mapv :event/id events))
-                          :metadata tx-metadata}}))]
+                   :body (cond-> {:event-ids (set (mapv :event/id events))}
+                           tx-metadata (assoc :metadata tx-metadata))}))]
     (jdbc/with-transaction
       [conn (get-in event-store [:state ::connection-pool])]
       (jdbc/execute! conn ["SET LOCAL lock_timeout = '5000ms'"])
