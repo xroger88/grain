@@ -4,6 +4,7 @@
             [ai.obney.grain.query-processor.interface :as qp]
             [ai.obney.grain.event-store-v2.interface :as es]
             [ai.obney.grain.event-store-v2.core.in-memory]
+            [ai.obney.grain.event-store-postgres-v2.interface]
             [ai.obney.grain.example-service.interface.read-models :as rm]
             [ai.obney.grain.time.interface :as time]
             [clj-http.client :as http]))
@@ -38,35 +39,42 @@
             :command {:command/name :example/create-counter
                       :command/timestamp (time/now)
                       :command/id (random-uuid)
-                      :name "Counter B"}))
+                      :name "Counter A"}))
     (catch Exception e (ex-data e)))
 
-  (es/read event-store {})
+  (into [] (es/read event-store {}))
 
-  (qp/process-query
-   (assoc context
-          :query {:query/name :example/counters
-                  :query/timestamp (time/now)
-                  :query/id (random-uuid)}))
+  (def counters
+    (->> (qp/process-query
+          (assoc context
+                 :query {:query/name :example/counters
+                         :query/timestamp (time/now)
+                         :query/id (random-uuid)}))
+         :query/result))
 
-  (qp/process-query
-   (assoc context
-          :query {:query/name :example/counter
-                  :query/timestamp (time/now)
-                  :query/id (random-uuid)
-                  :counter-id #uuid "40758b11-d3e9-4897-9710-1ff0e07aa57a"}))
+
+  (def counter
+    (->> (qp/process-query
+          (assoc context
+                 :query {:query/name :example/counter
+                         :query/timestamp (time/now)
+                         :query/id (random-uuid)
+                         :counter-id (:counter/id (first counters))}))
+         :query/result))
+
+
 
   (cp/process-command
    (assoc context
           :command {:command/name :example/increment-counter
                     :command/timestamp (time/now)
                     :command/id (random-uuid)
-                    :counter-id #uuid "40758b11-d3e9-4897-9710-1ff0e07aa57a"}))
+                    :counter-id (:counter/id counter)}))
 
 
   (rm/root context)
 
-
+  (into [] (es/read event-store {}))
 
 
   ""

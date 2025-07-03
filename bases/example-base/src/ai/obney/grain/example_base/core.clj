@@ -3,7 +3,7 @@
             [ai.obney.grain.query-request-handler.interface :as qrh]
             [ai.obney.grain.periodic-task.interface :as pt]
             [ai.obney.grain.event-store-v2.interface :as es] 
-            [ai.obney.grain.event-store-postgres.interface]
+            [ai.obney.grain.event-store-postgres-v2.interface]
             [ai.obney.grain.webserver.interface :as ws]
             [ai.obney.grain.pubsub.interface :as ps]
             [ai.obney.grain.todo-processor.interface :as tp]
@@ -33,7 +33,7 @@
   {::logger {}
    ::event-store {:logger (ig/ref ::logger)
                   :event-pubsub (ig/ref ::event-pubsub)
-                  :conn {:type :in-memory
+                  :conn {:type :postgres
                          :server-name "localhost"
                          :port-number "5433"
                          :username "postgres"

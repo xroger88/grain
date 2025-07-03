@@ -33,12 +33,11 @@
 (defn apply-events
   "Applies a sequence of events to the read model state."
   [events]
-  (let [result (when (seq events)
-                 (reduce
-                  (fn [state event]
-                    (apply-event state event))
-                  {}
-                  events))]
+  (let [result (reduce
+                (fn [state event]
+                  (apply-event state event))
+                {}
+                events)]
     (when (seq result)
       result)))
 
