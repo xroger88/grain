@@ -55,16 +55,17 @@
        ::anom/message (format "Counter with ID '%s' not found." counter-id)})))
 
 (defn calculate-average-counter-value
-  "Calculates the average value of all counters."
+  "Calculates the average value of all initialized counters."
   [context]
-  (let [state (read-models/root context)]
+  (let [state (->> (read-models/root context)
+                   (filter (fn [[_ v]] (:counter/value v)))
+                   (into {}))]
     {:command-result/events
      [(->event
        {:type :example/average-calculated
         :body {:value (/ (double (->> state
                                       vals
                                       (map :counter/value)
-                                      (filter identity)
                                       (reduce + 0)))
                          (double (count state)))}})]}))
 
