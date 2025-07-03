@@ -9,4 +9,5 @@
  :projects {"development" {:alias "dev"}
             "grain-core" {:alias "core"}
             "grain-event-store-postgres" {:alias "es-pg"}
+            "grain-event-store-postgres-v2" {:alias "es-pg-v2"}
             "grain-mulog-aws-cloudwatch-emf-publisher" {:alias "mulog-aws-emf-pub"}}}
