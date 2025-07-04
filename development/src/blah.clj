@@ -16,5 +16,14 @@
             [ai.obney.grain.time.interface]
             [ai.obney.grain.webserver.interface]
             [ai.obney.grain.todo-processor.interface]
-            [ai.obney.grain.schema-util.interface]))
+            [ai.obney.grain.schema-util.interface]
+            [libpython-clj2.python :as py :refer [py. py.-]]
+            [libpython-clj2.require :refer [require-python]]))
 
+(require-python '[dspy :as dspy])
+
+(def lm (dspy/LM "openai/gpt-4o-mini"))
+
+(dspy/configure :lm lm)
+
+(lm "hello")

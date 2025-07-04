@@ -2,6 +2,7 @@
 
                   :extra-deps {org.clojure/clojure {:mvn/version "1.12.0"}
                                clj-http/clj-http {:mvn/version "3.13.0"}
+                               clj-python/libpython-clj {:mvn/version "2.025"}
                                
                                ;; Components
                                poly/command-processor {:local/root "components/command-processor"}
@@ -23,6 +24,7 @@
                                poly/periodic-task {:local/root "components/periodic-task"}
                                poly/mulog-aws-cloudwatch-emf-publisher {:local/root "components/mulog-aws-cloudwatch-emf-publisher"}
                                poly/event-model {:local/root "components/event-model"}
+                               poly/behavior-tree {:local/root "components/behavior-tree"}
 
                                ;; Examples
                                poly/example-base {:local/root "bases/example-base"}

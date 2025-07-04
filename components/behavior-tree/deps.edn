@@ -1,0 +1,8 @@
+{:paths ["src" "resources"]
+ :deps {poly/event-store-v2 {:local/root "../event-store-v2"}
+        poly/time {:local/root "../time"}
+        poly/anomalies {:local/root "../anomalies"}
+        poly/schema-util {:local/root "../schema-util"}
+        danlentz/clj-uuid {:mvn/version "0.2.0"}}
+ :aliases {:test {:extra-paths ["test"]
+                  :extra-deps {}}}}
