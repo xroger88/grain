@@ -25,6 +25,7 @@
                                poly/mulog-aws-cloudwatch-emf-publisher {:local/root "components/mulog-aws-cloudwatch-emf-publisher"}
                                poly/event-model {:local/root "components/event-model"}
                                poly/behavior-tree {:local/root "components/behavior-tree"}
+                               poly/clj-dspy {:local/root "components/clj-dspy"}
 
                                ;; Examples
                                poly/example-base {:local/root "bases/example-base"}
