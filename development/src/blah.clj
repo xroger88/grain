@@ -142,18 +142,30 @@
                            [(first args) (second args)]
                            [nil (first args)])
         {:keys [inputs outputs]} spec
+        ;; Create Python module name from Clojure namespace
+        clj-namespace (str *ns*)
+        python-module (str/replace clj-namespace #"\." "_")
         model-name (str name)
+        qualified-name (str python-module "." model-name)
         python-code (str "import dspy\n"
                          "from pydantic import BaseModel\n"
                          "from typing import List, Dict, Optional, Union, Any\n"
+                         "import types\n"
+                         ;; Create module if it doesn't exist
+                         "if '" python-module "' not in globals():\n"
+                         "    " python-module " = types.ModuleType('" python-module "')\n"
+                         "    globals()['" python-module "'] = " python-module "\n"
                          "class " model-name "(dspy.Signature):\n"
                          (when docstring (str "    \"\"\"" docstring "\"\"\"\n"))
                          (malli-fields->pydantic inputs "InputField")
                          (malli-fields->pydantic outputs "OutputField")
-                         "globals()['" model-name "'] = " model-name "\n")]
+                         ;; Add class to the module
+                         "setattr(" python-module ", '" model-name "', " model-name ")\n"
+                         ;; Also add to globals for easy access
+                         "globals()['" qualified-name "'] = " model-name "\n")]
     `(do
        (py/run-simple-string ~python-code)
-       (let [signature-class# (py/get-item (py/module-dict (py/import-module "__main__")) ~model-name)]
+       (let [signature-class# (py/get-item (py/module-dict (py/import-module "__main__")) ~qualified-name)]
          (def ~name
            ~@(when docstring [docstring])
            {:signature signature-class#
@@ -211,10 +223,17 @@
                 (string? default) (str "\"" default "\"")
                 :else (str default))))))
 
-(defn generate-pydantic-model [model-name fields]
-  (let [python-code (str "import pydantic\n"
+(defn generate-pydantic-model [model-name fields clj-namespace]
+  (let [python-module (str/replace clj-namespace #"\." "_")
+        qualified-name (str python-module "." model-name)
+        python-code (str "import pydantic\n"
                          "from pydantic import BaseModel, Field\n"
                          "from typing import List, Dict, Optional, Union, Any\n"
+                         "import types\n"
+                         ;; Create module if it doesn't exist
+                         "if '" python-module "' not in globals():\n"
+                         "    " python-module " = types.ModuleType('" python-module "')\n"
+                         "    globals()['" python-module "'] = " python-module "\n"
                          "class " model-name "(BaseModel):\n"
                          (apply str
                                 (for [[field-name schema] fields]
@@ -225,13 +244,16 @@
                                          (if (or desc default)
                                            (str " = Field(" field-args ")")
                                            "") "\n"))))
-                         "globals()['" model-name "'] = " model-name "\n")]
+                         ;; Add class to the module
+                         "setattr(" python-module ", '" model-name "', " model-name ")\n"
+                         ;; Also add to globals for easy access
+                         "globals()['" qualified-name "'] = " model-name "\n")]
     (py/run-simple-string python-code)
-    (py/get-item (py/module-dict (py/import-module "__main__")) model-name)))
+    (py/get-item (py/module-dict (py/import-module "__main__")) qualified-name)))
 
 (defmacro defmodel
   [name fields]
-  `(def ~name (generate-pydantic-model ~(str name) ~fields)))
+  `(def ~name (generate-pydantic-model ~(str name) ~fields ~(str *ns*))))
 
 (defn validate
   "Validate data against a Pydantic model. Returns the validated model instance."
@@ -302,7 +324,7 @@
      :outputs {:title [:string {:desc "A concise, descriptive title"}]}})
 
   ;; 3. Example usage of the complete flow
-  (let [document "Artificial intelligence is transforming healthcare largely by enabling faster diagnoses, personalized treatments, and improved patient outcomes. Machine learning algorithms can analyze medical images with remarkable accuracy, often detecting conditions that human doctors might miss. However, challenges remain in terms of data privacy, algorithmic bias, and the need for regulatory frameworks."
+  (let [document "Artificial intelligence is transforming healthcare bigly by enabling faster diagnoses, personalized treatments, and improved patient outcomes. Machine learning algorithms can analyze medical images with remarkable accuracy, often detecting conditions that human doctors might miss. However, challenges remain in terms of data privacy, algorithmic bias, and the need for regulatory frameworks."
 
         ;; Step 1: Extract key points
         key-points-result ((:predict ExtractKeyPoints)
@@ -330,3 +352,4 @@
     summary-data))
 
 
+(inspect-python GenerateTitle)
