@@ -32,38 +32,38 @@
 
 (deftest test-signature-creation
   (testing "Signature creation with namespacing"
-    (dspy/initialize-python!)
-
     ;; Test signature macro expansion
     (dspy/defsignature TestSig
       "Test signature"
       {:inputs {:input [:string {:desc "Test input"}]}
        :outputs {:output [:string {:desc "Test output"}]}})
 
-    (is (map? TestSig))
-    (is (contains? TestSig :signature))
-    (is (contains? TestSig :inputs))
-    (is (contains? TestSig :outputs))
-    (is (contains? TestSig :instructions))))
+    (is (= :pyobject (type TestSig)))
+
+    (let [metadata (:dspy/signature (meta #'TestSig))]
+      (is (map? metadata))
+      (is (contains? metadata :signature))
+      (is (contains? metadata :inputs))
+      (is (contains? metadata :outputs))
+      (is (contains? metadata :instructions)))))
 
 (deftest test-model-creation
   (testing "Pydantic model creation with namespacing"
-    (dspy/initialize-python!)
-    
-    (dspy/defmodel TestModel
-      {:name [:string {:desc "Name field"}]
-       :age [:int {:desc "Age field"}]})
-    
-    (is (some? TestModel))
-    
-    ;; Test validation
-    (let [result (dspy/validate TestModel {:name "John" :age 30})]
-      (is (some? result)))))
+    (let [fields {:name [:string {:desc "Name field"}]
+                  :age [:int {:desc "Age field"}]}]
+
+      (dspy/defmodel TestModel fields)
+
+      (is (= fields (-> #'TestModel meta :dspy/model :fields)))
+
+      (is (some? TestModel))
+
+      ;; Test validation
+      (let [result (dspy/validate TestModel {:name "John" :age 30})]
+        (is (some? result))))))
 
 (deftest test-inspection
   (testing "Python object inspection"
-    (dspy/initialize-python!)
-    
     (dspy/defsignature InspectSig
       "Signature for inspection"
       {:inputs {:test [:string]}

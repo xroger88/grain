@@ -258,20 +258,25 @@
                            [(first args) (second args)]
                            [nil (first args)])
         {:keys [inputs outputs]} spec
-        clj-namespace (str *ns*)]
+        clj-namespace (str *ns*)
+        ;; Create metadata map with signature information under :dspy key
+        signature-metadata {:dspy/signature {:signature name
+                                             :inputs inputs
+                                             :outputs outputs
+                                             :instructions docstring}}]
     `(do
        (let [signature-class# (generate-signature ~(str name) ~docstring ~inputs ~outputs ~clj-namespace)]
-         (def ~name
-           ~@(when docstring [docstring])
-           {:signature signature-class#
-            :inputs ~inputs
-            :outputs ~outputs
-            :instructions ~docstring})))))
+         (def ~(with-meta name (merge signature-metadata
+                                      (when docstring {:doc docstring})))
+           signature-class#)))))
 
 (defmacro defmodel
   "Core implementation of defmodel macro."
   [name fields]
-  `(def ~name (generate-pydantic-model ~(str name) ~fields ~(str *ns*))))
+  (let [;; Create metadata map with model information under :dspy key
+        model-metadata {:dspy/model {:fields fields}}]
+    `(def ~(with-meta name model-metadata)
+       (generate-pydantic-model ~(str name) ~fields ~(str *ns*)))))
 
 
 
@@ -293,12 +298,12 @@
      :key_points [:vector {:desc "Main points from the document"} :string]
      :sentiment [:enum ["positive" "neutral" "negative"] {:desc "Overall sentiment"}]
      :word_count [:int {:desc "Number of words in original document"}]})
-
+  
   ;; 2. Define DSPy signatures for different tasks
   (defsignature ExtractKeyPoints
     "Extract the main key points from a document"
     {:inputs {:document [:string {:desc "The document text to analyze"}]}
-     :outputs {:points [:string {:desc "Comma-separated key points"}]}})
+     :outputs {:points [:string {:desc "Comma-separated key points"}]}}) 
 
   (defsignature AnalyzeSentiment
     "Analyze the sentiment of text"
@@ -315,15 +320,15 @@
   (let [document "Artificial intelligence is transforming healthcare superbly by enabling faster diagnoses, personalized treatments, and improved patient outcomes. Machine learning algorithms can analyze medical images with remarkable accuracy, often detecting conditions that human doctors might miss. However, challenges remain in terms of data privacy, algorithmic bias, and the need for regulatory frameworks."
 
         ;; Step 1: Extract key points
-        key-points-result ((dspy/Predict (:signature ExtractKeyPoints)) 
+        key-points-result ((dspy/Predict ExtractKeyPoints) 
                            :document document)
 
         ;; Step 2: Analyze sentiment  
-        sentiment-result ((dspy/Predict (:signature AnalyzeSentiment)) 
+        sentiment-result ((dspy/Predict AnalyzeSentiment) 
                           :text document)
 
         ;; Step 3: Generate title
-        title-result ((dspy/Predict (:signature GenerateTitle))
+        title-result ((dspy/Predict GenerateTitle)
                       :document document
                       :key_points (py.- key-points-result :points))
 
