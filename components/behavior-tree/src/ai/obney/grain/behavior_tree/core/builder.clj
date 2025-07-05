@@ -1,57 +1,6 @@
 (ns ai.obney.grain.behavior-tree.core.builder
-  (:require [ai.obney.grain.behavior-tree.core.nodes :as bt-core]))
-
-;; =============================================================================
-;; MULTI-METHODS FOR EXTENSIBLE ACTIONS AND CONDITIONS
-;; =============================================================================
-
-(defmulti execute-action
-  "Execute a behavior tree action. Dispatch on action keyword."
-  (fn [action-key context] action-key))
-
-(defmulti evaluate-condition
-  "Evaluate a behavior tree condition. Dispatch on condition keyword."
-  (fn [condition-key context] condition-key))
-
-;; Default implementations
-(defmethod execute-action :default [action-key context]
-  (throw (ex-info "Unknown action" {:action-key action-key})))
-
-(defmethod evaluate-condition :default [condition-key context]
-  (throw (ex-info "Unknown condition" {:condition-key condition-key})))
-
-;; =============================================================================
-;; BUILT-IN ACTIONS
-;; =============================================================================
-
-(defmethod execute-action :succeed [_ _] bt-core/success)
-(defmethod execute-action :fail [_ _] bt-core/failure)
-
-(defmethod execute-action :log [_ context]
-  (let [message (or (:message context) "No message")]
-    (println "Action log:" message)
-    bt-core/success))
-
-(defmethod execute-action :wait [_ context]
-  (let [duration (or (:duration context) 1000)]
-    (println (str "Waiting " duration "ms"))
-    (Thread/sleep duration)
-    bt-core/success))
-
-(defmethod execute-action :set-blackboard-value [_ context]
-  (let [blackboard (:blackboard context)
-        key (:key context)
-        value (:value context)]
-    (when (and blackboard key)
-      (bt-core/set-value blackboard key value))
-    bt-core/success))
-
-;; =============================================================================
-;; BUILT-IN CONDITIONS  
-;; =============================================================================
-
-(defmethod evaluate-condition :always-true [_ _] true)
-(defmethod evaluate-condition :always-false [_ _] false)
+  (:require [ai.obney.grain.behavior-tree.core.nodes :as bt-core]
+            [ai.obney.grain.behavior-tree.interface.protocols :as proto :refer [execute-action evaluate-condition]]))
 
 (defn build-node
   "Build a behavior tree node from vector format: [:type {:opts} child1 child2 ...]"

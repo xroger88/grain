@@ -1,25 +1,5 @@
 (ns ai.obney.grain.behavior-tree.core.nodes
-)
-
-(def ^:const success :success)
-(def ^:const failure :failure)
-(def ^:const running :running)
-
-(defprotocol BehaviorNode
-  "Protocol for behavior tree nodes"
-  (tick [this context]
-    "Execute the node and return success, failure, or running"))
-
-(defprotocol Blackboard
-  "Protocol for blackboard data store"
-  (get-value [this key]
-    "Get a value from the blackboard")
-  (set-value [this key value]
-    "Set a value in the blackboard")
-  (remove-value [this key]
-    "Remove a value from the blackboard")
-  (get-all [this]
-    "Get all values from the blackboard"))
+  (:require [ai.obney.grain.behavior-tree.interface.protocols :as proto :refer [BehaviorNode Blackboard success failure running tick get-value set-value remove-value]]))
 
 
 (defrecord SequenceNode [children]

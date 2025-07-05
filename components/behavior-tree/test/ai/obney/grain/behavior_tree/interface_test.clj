@@ -1,6 +1,7 @@
 (ns ai.obney.grain.behavior-tree.interface-test
   (:require [clojure.test :as test :refer :all]
-            [ai.obney.grain.behavior-tree.interface :as sut]))
+            [ai.obney.grain.behavior-tree.interface :as sut]
+            [ai.obney.grain.behavior-tree.interface.protocols :refer [success]]))
 
 (deftest test-declarative-tree
   (testing "Declarative behavior tree creation"
@@ -9,7 +10,7 @@
                    [:action :succeed]]
           tree (sut/build-behavior-tree config)
           context {}]
-      (is (= sut/success (sut/run-tree tree context))))))
+      (is (= success (sut/run-tree tree context))))))
 
 (deftest test-opts-syntax
   (testing "Options map syntax"
@@ -18,7 +19,7 @@
                    [:action :succeed]]
           tree (sut/build-behavior-tree config)
           context {}]
-      (is (= sut/success (sut/run-tree tree context))))))
+      (is (= success (sut/run-tree tree context))))))
 
 (deftest test-action-params
   (testing "Action parameters"
@@ -28,4 +29,4 @@
                    [:action :succeed]]
           tree (sut/build-behavior-tree config)
           context {}]
-      (is (= sut/success (sut/run-tree tree context))))))
+      (is (= success (sut/run-tree tree context))))))
