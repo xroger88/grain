@@ -31,7 +31,7 @@
       :condition
       (let [condition-key (first children)]
         (bt-core/condition-node 
-          (fn [context] (evaluate-condition condition-key context))))
+          (fn [context] (evaluate-condition condition-key (merge context opts)))))
       
       :action
       (let [action-key (first children)]
