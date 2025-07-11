@@ -6,7 +6,6 @@
             [clj-uuid :as uuid]))
 
 (def blackboard-entity-type :blackboard)
-(def blackboard-entity-id (java.util.UUID/fromString "00000000-0000-0000-0000-000000000000"))
 
 ;; Define schemas for blackboard events
 (defschemas blackboard-events
@@ -32,50 +31,109 @@
           snapshot
           events))
 
+
 (defn- update-snapshot!
   "Update the snapshot with events newer than last-event-id"
   [blackboard]
   (let [event-store (:event-store blackboard)
         blackboard-id (:blackboard-id blackboard)
-        cache-atom (:cache-atom blackboard)]
+        cache-atom (:cache-atom blackboard)
+        read-model-fn (:read-model-fn blackboard)
+        domain-event-config (:domain-event-config blackboard)]
     (swap! cache-atom
            (fn [current-cache]
              (let [current-snapshot (:snapshot current-cache)
                    current-last-event-id (:last-event-id current-cache)]
                (if (nil? current-snapshot)
                  ;; No snapshot exists, build from scratch
-                 (let [events (into
-                               []
-                               (event-store-v2/read
-                                event-store
-                                {:tags #{[blackboard-entity-type blackboard-id]}
-                                 :types #{:blackboard/value-set :blackboard/value-removed}}))
-                       new-snapshot (apply-events-to-snapshot {} events)
-                       new-last-event-id (when (seq events) (:event/id (last events)))]
+                 (let [;; Get blackboard events (always filtered by blackboard-id)
+                       bb-events (into
+                                  []
+                                  (event-store-v2/read
+                                   event-store
+                                   {:tags #{[blackboard-entity-type blackboard-id]}
+                                    :types #{:blackboard/value-set :blackboard/value-removed}}))
+                       
+                       ;; Get domain events using configured queries
+                       domain-events (if domain-event-config
+                                       (mapcat (fn [query]
+                                                 (into [] (event-store-v2/read event-store query)))
+                                               domain-event-config)
+                                       [])
+                       
+                       ;; Build initial state from read model if provided
+                       initial-state (if read-model-fn
+                                       (read-model-fn domain-events)
+                                       {})
+                       
+                       ;; Apply blackboard events on top of read model state
+                       new-snapshot (apply-events-to-snapshot initial-state bb-events)
+                       
+                       ;; Track the latest event ID from ALL events for incremental updates
+                       all-events (concat domain-events bb-events)
+                       new-last-event-id (when (seq all-events) 
+                                           (:event/id (last (sort-by :event/id all-events))))]
                    {:snapshot new-snapshot :last-event-id new-last-event-id})
-                 ;; Snapshot exists, get only new events
-                 (let [events (into
-                               []
-                               (event-store-v2/read
-                                event-store
-                                {:tags #{[blackboard-entity-type blackboard-id]}
-                                 :types #{:blackboard/value-set :blackboard/value-removed}
-                                 :after current-last-event-id}))
-                       new-snapshot (apply-events-to-snapshot current-snapshot events)
-                       new-last-event-id (if (seq events)
-                                           (:event/id (last events))
+                 ;; Snapshot exists, get only new events since last update
+                 (let [;; Get new blackboard events
+                       new-bb-events (into
+                                      []
+                                      (event-store-v2/read
+                                       event-store
+                                       {:tags #{[blackboard-entity-type blackboard-id]}
+                                        :types #{:blackboard/value-set :blackboard/value-removed}
+                                        :after current-last-event-id}))
+                       
+                       ;; Get new domain events using configured queries
+                       new-domain-events (if domain-event-config
+                                           (mapcat (fn [query]
+                                                     (let [query-with-after (assoc query :after current-last-event-id)]
+                                                       (into [] (event-store-v2/read event-store query-with-after))))
+                                                   domain-event-config)
+                                           [])
+                       
+                       ;; Rebuild state if new domain events, otherwise just apply blackboard events
+                       updated-snapshot (if (and read-model-fn (seq new-domain-events))
+                                          ;; New domain events: need to rebuild domain state completely
+                                          (let [;; Get ALL domain events to rebuild state
+                                                all-domain-events (if domain-event-config
+                                                                    (mapcat (fn [query]
+                                                                              (into [] (event-store-v2/read event-store query)))
+                                                                            domain-event-config)
+                                                                    [])
+                                                ;; Apply read model to get current domain state
+                                                domain-state (read-model-fn all-domain-events)
+                                                ;; Get ALL blackboard events and apply
+                                                all-bb-events (into
+                                                               []
+                                                               (event-store-v2/read
+                                                                event-store
+                                                                {:tags #{[blackboard-entity-type blackboard-id]}
+                                                                 :types #{:blackboard/value-set :blackboard/value-removed}}))
+                                                final-state (apply-events-to-snapshot domain-state all-bb-events)]
+                                            final-state)
+                                          ;; No new domain events: just apply new blackboard events
+                                          (apply-events-to-snapshot current-snapshot new-bb-events))
+                       
+                       ;; Track latest event ID from all new events
+                       all-new-events (concat new-domain-events new-bb-events)
+                       new-last-event-id (if (seq all-new-events)
+                                           (:event/id (last (sort-by :event/id all-new-events)))
                                            current-last-event-id)]
-                   {:snapshot new-snapshot :last-event-id new-last-event-id})))))
+                   {:snapshot updated-snapshot :last-event-id new-last-event-id})))))
     (:snapshot @cache-atom)))
 
-(defrecord EventStoreBlackboard [event-store blackboard-id cache-atom]
+(defrecord EventStoreBlackboard [event-store blackboard-id cache-atom read-model-fn domain-event-config]
   Blackboard
   (get-value [this key]
     (let [current-snapshot (update-snapshot! this)]
       (get current-snapshot key)))
   
   (set-value [this key value]
-    (let [event (event-store-v2/->event
+    (let [event-store (:event-store this)
+          blackboard-id (:blackboard-id this)
+          cache-atom (:cache-atom this)
+          event (event-store-v2/->event
                  {:type :blackboard/value-set
                   :tags #{[blackboard-entity-type blackboard-id]}
                   :body {:key key
@@ -86,7 +144,10 @@
     this)
   
   (remove-value [this key]
-    (let [event (event-store-v2/->event
+    (let [event-store (:event-store this)
+          blackboard-id (:blackboard-id this)
+          cache-atom (:cache-atom this)
+          event (event-store-v2/->event
                  {:type :blackboard/value-removed
                   :tags #{[blackboard-entity-type blackboard-id]}
                   :body {:key key}})]
@@ -103,4 +164,15 @@
   ([event-store]
    (create-event-store-blackboard event-store (uuid/v7)))
   ([event-store blackboard-id]
-   (->EventStoreBlackboard event-store blackboard-id (atom {:snapshot nil :last-event-id nil}))))
+   (create-event-store-blackboard event-store blackboard-id nil nil))
+  ([event-store blackboard-id read-model-fn domain-event-config]
+   (->EventStoreBlackboard event-store blackboard-id (atom {:snapshot nil :last-event-id nil}) read-model-fn domain-event-config)))
+
+(defn create-event-sourced-blackboard
+  "Create a pure event-sourced blackboard with optional read model and domain event config"
+  [event-store & {:keys [blackboard-id read-model-fn domain-event-config]}]
+  (create-event-store-blackboard 
+    event-store 
+    (or blackboard-id (uuid/v7)) 
+    read-model-fn 
+    domain-event-config))

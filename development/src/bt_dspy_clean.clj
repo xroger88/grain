@@ -96,6 +96,23 @@
    :document/sentiment [:enum "positive" "negative" "neutral"]
    :document/word-count [:int {:desc "Number of words"}]})
 
+;; Define schemas for domain events used by this example
+(defschemas domain-events
+  {:document/processed
+   [:map
+    [:text :string]
+    [:document-id :uuid]]
+    
+   :document/analyzed
+   [:map
+    [:analysis :any]
+    [:document-id :uuid]]
+    
+   :analysis/completed
+   [:map
+    [:summary :any]
+    [:document-id :uuid]]})
+
 ;; =============================================================================
 ;; DSPy Models and Signatures
 ;; =============================================================================
@@ -211,26 +228,70 @@
 ;; Main Function
 ;; =============================================================================
 
+(defmulti apply-document-event
+  "Apply a document-related event to the blackboard state."
+  (fn [_state event]
+    (:event/type event)))
+
+(defmethod apply-document-event :document/processed
+  [state event]
+  ;; Event body fields are directly accessible (no :event/body)
+  (assoc state 
+         :document (:text event)
+         :document-id (:document-id event)))
+
+(defmethod apply-document-event :document/analyzed  
+  [state event]
+  (assoc state
+         :previous-analysis (:analysis event)
+         :analyzed-at (:event/timestamp event)))
+
+(defmethod apply-document-event :analysis/completed
+  [state event]
+  (assoc state
+         :last-analysis (:summary event)
+         :completed-at (:event/timestamp event)))
+
+(defmethod apply-document-event :default
+  [state _event]
+  ;; Unknown events leave state unchanged
+  state)
+
+(defn document-analysis-read-model
+  "Read model that builds document analysis state from events.
+  This demonstrates how to initialize blackboard state from existing events.
+  
+  Takes a reducible of events (from event-store-v2/read) and returns a map."
+  [events]
+  ;; Use the standard event-sourcing pattern: reduce events into state
+  (reduce apply-document-event {} events))
+
 (defn analyze-document
-  "Analyze a document using behavior tree orchestrated DSPy pipeline"
+  "Analyze a document using behavior tree orchestrated DSPy pipeline.
+  Handles both document initialization in event store and analysis."
   [event-store document]
-  (let [;; Create a blackboard using the event store
-        blackboard (bt/create-blackboard event-store)
-
-        ;; Build the behavior tree
-        tree (bt/build-behavior-tree document-analysis-tree)
-
-        ;; Set initial document in blackboard
-        _ (bt/set-value blackboard :document document)
-
-        ;; Create execution context
-        context (bt/create-context blackboard)]
-
-    (println "🚀 Starting document analysis with behavior tree...")
-    (println "📄 Document:" (subs document 0 (min 100 (count document))) "...")
-
-    ;; Execute the behavior tree
-    (let [result (bt/run-tree tree context)]
+  (println "🚀 Starting document analysis with behavior tree...")
+  (println "📄 Document:" (subs document 0 (min 100 (count document))) "...")
+  
+  ;; Step 1: Write document to event store
+  (let [document-id (java.util.UUID/randomUUID)
+        event (event-store/->event
+               {:type :document/processed
+                :tags #{[:document document-id]}
+                :body {:text document
+                       :document-id document-id}})]
+    (event-store/append event-store {:events [event]})
+    (println "✓ Document initialized in event store with ID:" document-id)
+    
+    ;; Step 2: Execute behavior tree with pure event-sourced approach
+    (let [{:keys [result blackboard]} (bt/execute
+                                        event-store
+                                        document-analysis-tree
+                                        :read-model-fn document-analysis-read-model
+                                        :domain-event-config [{:types #{:document/processed :document/analyzed}
+                                                               :tags #{[:document document-id]}}
+                                                              {:types #{:analysis/completed}
+                                                               :tags #{[:document document-id]}}])]
       (println "🏁 Analysis complete with result:" result)
 
       ;; Return the final summary if successful
@@ -244,15 +305,9 @@
 ;; Example Usage
 ;; =============================================================================
 
-(defn run-example
-  "Run the example document analysis"
-  [event-store document]
-  (println "=== Document Analysis using Behavior Tree + DSPy ===")
-  (analyze-document event-store document))
-
 (def sample-doc "Language models (LMs) built on the transformer neural network architecture and trained
-on a next-token prediction objective have demonstrated surprising capabilities across a
-wide spectrum of tasks in Natural Language Processing (NLP) and adjacent fields such
+on a next-token prediction objective have demonstrated impressive capabilities across a
+wide spectrum of tasks in Natural Language Processing (NLP) with adjacent fields such
 as Computer Vision. The strengths of these models have been sufficiently great that some
 commentators have suggested that these models will, by themselves, suffice for building
 generally capable intelligent agents: for these people an end-to-end transformer really is
@@ -303,19 +358,18 @@ more capable intelligent agents.")
 
 (def lm (dspy/LM "openai/gpt-4o-mini"))
 
+;; =============================================================================
+;; To run the example:
+;; =============================================================================
 (comment
-  ;; To run the example:
-
-  ;; 1. Configure your LLM (you'll need API keys) 
+  ;;1. Configure your LLM (you'll need API keys) 
   (dspy/configure :lm lm)
 
-
-  ;; 2. Start the event store (in-memory for this example)
+  ;;2. Start the event store (in-memory for this example)
   (def event-store (event-store/start {:conn {:type :in-memory}}))
 
-  ;; 3. Run the example
-  (run-example event-store sample-doc)
+  ;;3. Run the complete example
+  (analyze-document event-store sample-doc)
 
-  
-  "")
-
+  ""
+  )

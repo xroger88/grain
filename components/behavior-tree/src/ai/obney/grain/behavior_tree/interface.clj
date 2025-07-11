@@ -3,30 +3,47 @@
             [ai.obney.grain.behavior-tree.core.blackboard :as blackboard]
             [ai.obney.grain.behavior-tree.core.builder :as builder]))
 
+(defn execute
+  "Execute a behavior tree with event-store backed blackboard.
+  
+  Required:
+  - event-store: The event store instance
+  - tree-config: Vector-based behavior tree configuration
+  
+  Optional (via options map):
+  - :blackboard-id - Custom blackboard ID (defaults to random UUID)
+  - :read-model-fn - Function (events) -> map that builds state from events in the event store
+                     Events have structure: {:event/id, :event/timestamp, :event/type, :event/tags, ...body-fields}
+  - :domain-event-config - Vector of event-store query maps for domain events the agent should track
+                           Each query specifies :types and :tags for efficient filtering
+                           Example: [{:types #{:document/processed} :tags #{[:document-type :research]}}
+                                    {:types #{:analysis/completed} :tags #{[:project project-id]}}]
+  - :context-data - Additional data to merge into execution context
+  
+  NOTE: All blackboard state is derived purely from events in the event store.
+        To initialize state, write initialization events to the store before execution.
+  
+  Returns a map with :result (:success, :failure, or :running) and :blackboard"
+  [event-store tree-config & {:keys [blackboard-id read-model-fn domain-event-config context-data]
+                               :or {context-data {}}}]
+  (let [;; Create pure event-sourced blackboard
+        blackboard (blackboard/create-event-sourced-blackboard
+                     event-store
+                     :blackboard-id blackboard-id
+                     :read-model-fn read-model-fn
+                     :domain-event-config domain-event-config)
+        
+        ;; Build tree and create context  
+        tree (builder/build-behavior-tree tree-config)
+        context (builder/create-context blackboard :data context-data)
+        
+        ;; Execute the tree
+        result (builder/run-tree tree context)]
+    
+    {:result result
+     :blackboard blackboard}))
 
-(defn create-blackboard
-  "Create a blackboard backed by event-store-v2"
-  ([event-store]
-   (blackboard/create-event-store-blackboard event-store))
-  ([event-store blackboard-id]
-   (blackboard/create-event-store-blackboard event-store blackboard-id)))
-
-
-(defn build-behavior-tree
-  "Build a complete behavior tree from configuration"
-  [config]
-  (builder/build-behavior-tree config))
-
-(defn create-context
-  "Create a context for behavior tree execution"
-  [blackboard & {:keys [data] :or {data {}}}]
-  (builder/create-context blackboard :data data))
-
-(defn run-tree
-  "Run a behavior tree with the given context"
-  [tree context]
-  (builder/run-tree tree context))
-
+;; Low-level blackboard access (use sparingly - prefer execute functions)
 (defn get-value
   "Get a value from a blackboard"
   [blackboard key]
@@ -36,11 +53,6 @@
   "Set a value in a blackboard"
   [blackboard key value]
   (proto/set-value blackboard key value))
-
-(defn remove-value
-  "Remove a value from a blackboard"
-  [blackboard key]
-  (proto/remove-value blackboard key))
 
 (defn get-all
   "Get all values from a blackboard"
