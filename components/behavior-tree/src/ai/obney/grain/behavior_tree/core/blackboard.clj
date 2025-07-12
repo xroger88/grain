@@ -16,7 +16,11 @@
    
    :blackboard/value-removed
    [:map
-    [:key :any]]})
+    [:key :any]]
+   
+   :blackboard/state-initialized
+   [:map
+    [:initial-state [:map-of :keyword :any]]]})
 
 (defn- apply-events-to-snapshot
   "Apply events to a snapshot to get the current state"
@@ -27,10 +31,11 @@
               (assoc acc (:key event) (:value event))
               :blackboard/value-removed
               (dissoc acc (:key event))
+              :blackboard/state-initialized
+              (merge acc (:initial-state event)) 
               acc))
           snapshot
           events))
-
 
 (defn- update-snapshot!
   "Update the snapshot with events newer than last-event-id"
@@ -52,7 +57,9 @@
                                   (event-store-v2/read
                                    event-store
                                    {:tags #{[blackboard-entity-type blackboard-id]}
-                                    :types #{:blackboard/value-set :blackboard/value-removed}}))
+                                    :types #{:blackboard/state-initialized 
+                                             :blackboard/value-set 
+                                             :blackboard/value-removed}}))
                        
                        ;; Get domain events using configured queries
                        domain-events (if domain-event-config
@@ -81,7 +88,9 @@
                                       (event-store-v2/read
                                        event-store
                                        {:tags #{[blackboard-entity-type blackboard-id]}
-                                        :types #{:blackboard/value-set :blackboard/value-removed}
+                                        :types #{:blackboard/state-initialized 
+                                                 :blackboard/value-set 
+                                                 :blackboard/value-removed}
                                         :after current-last-event-id}))
                        
                        ;; Get new domain events using configured queries
@@ -170,9 +179,18 @@
 
 (defn create-event-sourced-blackboard
   "Create a pure event-sourced blackboard with optional read model and domain event config"
-  [event-store & {:keys [blackboard-id read-model-fn domain-event-config]}]
-  (create-event-store-blackboard 
-    event-store 
-    (or blackboard-id (uuid/v7)) 
-    read-model-fn 
-    domain-event-config))
+  [event-store & {:keys [blackboard-id read-model-fn domain-event-config initial-blackboard]}]
+  (let [bb-id (or blackboard-id (uuid/v7))
+        blackboard (create-event-store-blackboard 
+                     event-store 
+                     bb-id 
+                     read-model-fn 
+                     domain-event-config)]
+    ;; If initial-blackboard is provided, create and append initialization event
+    (when initial-blackboard
+      (let [init-event (event-store-v2/->event
+                        {:type :blackboard/state-initialized
+                         :tags #{[blackboard-entity-type bb-id]}
+                         :body {:initial-state initial-blackboard}})]
+        (event-store-v2/append event-store {:events [init-event]})))
+    blackboard))

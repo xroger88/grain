@@ -1,7 +1,7 @@
 (ns bt-dspy-clean
   (:require [ai.obney.grain.behavior-tree.interface :as bt]
             [ai.obney.grain.behavior-tree.interface.protocols :refer [execute-action evaluate-condition success failure]]
-            [ai.obney.grain.clj-dspy.interface :as clj-dspy :refer [defsignature defmodel]]
+            [ai.obney.grain.clj-dspy.interface :as clj-dspy :refer [defsignature]]
             [ai.obney.grain.event-store-v2.interface :as event-store]
             [ai.obney.grain.event-store-v2.core.in-memory]
             [ai.obney.grain.schema-util.interface :refer [defschemas]]
@@ -9,14 +9,12 @@
             [libpython-clj2.require :refer [require-python]]
             [malli.core :as m]
             [clojure.string :as str]
-            [clojure.pprint :as pprint]))
+            [clojure.walk :as walk]))
 
 ;; Initialize Python and import DSPy
 (require-python '[dspy :as dspy])
 
-;; =============================================================================
-;; Custom Behavior Tree Conditions
-;; =============================================================================
+;; ## Custom Behavior Tree Conditions
 
 (defmethod evaluate-condition :has-value [condition-key context]
   (let [blackboard (:blackboard context)
@@ -28,6 +26,8 @@
       (and value (m/validate schema-name value))
       ;; Basic truthy + not blank check
       (boolean (and value (not (str/blank? value)))))))
+
+;; ## DSPY Integration
 
 (defmulti create-dspy-module (fn [operation _] operation))
 
@@ -74,7 +74,10 @@
               (let [field-name (name output-key)  ; Convert keyword to string
                     output-value (py/get-attr result field-name)
                     ;; Convert Python objects to Clojure data structures
-                    clj-value (py/->jvm output-value)]
+                    clj-value (let [v (py/->jvm output-value)]
+                                (cond
+                                  (map? v) (walk/keywordize-keys v)
+                                  :else v))]
                 (bt/set-value blackboard output-key clj-value)))
             (println (str "✓ " log-prefix) "completed successfully")
             success)
@@ -85,46 +88,24 @@
         (println (str "✗ " log-prefix " error:") (.getMessage e))
         failure))))
 
-;; =============================================================================
-;; Schemas
-;; =============================================================================
+;; ## Domain Schemas
 
 (defschemas schemas
   {:document/text [:string {:min 1 :desc "Document text"}]
    :document/title [:string {:min 1 :desc "Document title"}]
    :document/key-points [:vector {:desc "List of key points"} :string]
    :document/sentiment [:enum "positive" "negative" "neutral"]
-   :document/word-count [:int {:desc "Number of words"}]})
-
-;; Define schemas for domain events used by this example
-(defschemas domain-events
-  {:document/processed
+   :document/word-count [:int {:desc "Number of words"}]
+   :document/summary
    [:map
-    [:text :string]
-    [:document-id :uuid]]
-    
-   :document/analyzed
-   [:map
-    [:analysis :any]
-    [:document-id :uuid]]
-    
-   :analysis/completed
-   [:map
-    [:summary :any]
-    [:document-id :uuid]]})
+    [:title :document/title]
+    [:key_points :document/key-points]
+    [:sentiment :document/sentiment]
+    [:word_count :document/word-count]]})
 
-;; =============================================================================
-;; DSPy Models and Signatures
-;; =============================================================================
 
-;; Define a Pydantic model for structured document summary output
-(defmodel DocumentSummary
-  {:title (:document/title schemas)
-   :key_points (:document/key-points schemas)
-   :sentiment (:document/sentiment schemas)
-   :word_count (:document/word-count schemas)})
+;; ## DSPY Models & Signatures
 
-;; Define DSPy signatures for different analysis tasks
 (defsignature ExtractKeyPoints
   "Extract the main key points from a document"
   {:inputs {:document (:document/text schemas)}
@@ -141,39 +122,27 @@
             :key_points (:document/key-points schemas)}
    :outputs {:title (:document/title schemas)}})
 
-;; =============================================================================
-;; Custom Behavior Tree Actions using DSPy
-;; =============================================================================
+(defsignature CreateFinalSummary
+  "Create a structured document summary from analyzed components"
+  {:inputs {:title (:document/title schemas)
+            :key_points (:document/key-points schemas)
+            :sentiment (:document/sentiment schemas)
+            :word_count (:document/word-count schemas)}
+   :outputs {:final_summary (:document/summary schemas)}})
 
-(defmethod execute-action :create-summary [_ context]
-  (try
-    (let [blackboard (:blackboard context)
-          document (bt/get-value blackboard :document)
-          title (bt/get-value blackboard :title)
-          key-points (bt/get-value blackboard :key_points)
-          sentiment (bt/get-value blackboard :sentiment)]
-      (if (and document title key-points sentiment)
-        (let [word-count (count (str/split document #"\s+"))
-              summary-data {:title title
-                            :key_points key-points
-                            :sentiment sentiment
-                            :word_count word-count}
-              ;; Validate the summary
-              _ (clj-dspy/validate DocumentSummary summary-data)]
-          (bt/set-value blackboard :final-summary summary-data)
-          (println "✓ Created validated summary")
-          success)
-        (do
-          (println "✗ Missing required data for summary creation")
-          failure)))
-    (catch Exception e
-      (println "✗ Error creating summary:" (.getMessage e))
-      failure)))
+;; ## BT Actions
+
+(defmethod execute-action :calculate-word-count [_ context]
+  (let [blackboard (:blackboard context)
+        document (bt/get-value blackboard :document)
+        word-count (count (str/split document #"\s+"))]
+    (bt/set-value blackboard :word_count word-count)
+    (println "✓ Calculated word count:" word-count)
+    success))
 
 
-;; =============================================================================
-;; Behavior Tree Configuration
-;; =============================================================================
+
+;; ## Behavior Tree
 
 (def document-analysis-tree
   "Behavior tree for document analysis and summarization using DSPy"
@@ -212,7 +181,10 @@
        :log-prefix "Generating title"}
       :dspy]]]
 
-   ;; 4. Create final summary with schema validation
+   ;; 4. Calculate word count deterministically
+   [:action :calculate-word-count]
+
+   ;; 5. Create final summary using DSPy
    [:sequence
     [:condition
      {:key :title
@@ -222,88 +194,43 @@
      {:key :sentiment
       :schema :document/sentiment}
      :has-value]
-    [:action :create-summary]]])
+    [:condition
+     {:key :word_count
+      :schema :document/word-count}
+     :has-value]
+    [:retry {:max-retries 3}
+     [:action
+      {:signature #'CreateFinalSummary
+       :operation :predict
+       :log-prefix "Creating final summary"}
+      :dspy]]]
 
-;; =============================================================================
-;; Main Function
-;; =============================================================================
+   [:condition
+    {:key :final_summary
+     :schema :document/summary}
+    :has-value]])
 
-(defmulti apply-document-event
-  "Apply a document-related event to the blackboard state."
-  (fn [_state event]
-    (:event/type event)))
-
-(defmethod apply-document-event :document/processed
-  [state event]
-  ;; Event body fields are directly accessible (no :event/body)
-  (assoc state 
-         :document (:text event)
-         :document-id (:document-id event)))
-
-(defmethod apply-document-event :document/analyzed  
-  [state event]
-  (assoc state
-         :previous-analysis (:analysis event)
-         :analyzed-at (:event/timestamp event)))
-
-(defmethod apply-document-event :analysis/completed
-  [state event]
-  (assoc state
-         :last-analysis (:summary event)
-         :completed-at (:event/timestamp event)))
-
-(defmethod apply-document-event :default
-  [state _event]
-  ;; Unknown events leave state unchanged
-  state)
-
-(defn document-analysis-read-model
-  "Read model that builds document analysis state from events.
-  This demonstrates how to initialize blackboard state from existing events.
-  
-  Takes a reducible of events (from event-store-v2/read) and returns a map."
-  [events]
-  ;; Use the standard event-sourcing pattern: reduce events into state
-  (reduce apply-document-event {} events))
+;; ## Entrypoint
 
 (defn analyze-document
-  "Analyze a document using behavior tree orchestrated DSPy pipeline.
-  Handles both document initialization in event store and analysis."
+  "Analyze a document using behavior tree orchestrated DSPy pipeline."
   [event-store document]
   (println "🚀 Starting document analysis with behavior tree...")
   (println "📄 Document:" (subs document 0 (min 100 (count document))) "...")
-  
-  ;; Step 1: Write document to event store
-  (let [document-id (java.util.UUID/randomUUID)
-        event (event-store/->event
-               {:type :document/processed
-                :tags #{[:document document-id]}
-                :body {:text document
-                       :document-id document-id}})]
-    (event-store/append event-store {:events [event]})
-    (println "✓ Document initialized in event store with ID:" document-id)
-    
-    ;; Step 2: Execute behavior tree with pure event-sourced approach
-    (let [{:keys [result blackboard]} (bt/execute
-                                        event-store
-                                        document-analysis-tree
-                                        :read-model-fn document-analysis-read-model
-                                        :domain-event-config [{:types #{:document/processed :document/analyzed}
-                                                               :tags #{[:document document-id]}}
-                                                              {:types #{:analysis/completed}
-                                                               :tags #{[:document document-id]}}])]
-      (println "🏁 Analysis complete with result:" result)
 
-      ;; Return the final summary if successful
-      (if (= result success)
-        (bt/get-value blackboard :final-summary)
-        (do
-          (println "❌ Analysis failed")
-          nil)))))
+  ;; Execute with initial blackboard state (single event internally)
+  (let [{:keys [result blackboard]} (bt/execute
+                                      event-store
+                                      document-analysis-tree
+                                      :initial-blackboard {:document document})]
+    (println "🏁 Analysis complete with result:" result)
+    (if (= result success)
+      (bt/get-value blackboard :final_summary)
+      (do
+        (println "❌ Analysis failed")
+        nil))))
 
-;; =============================================================================
-;; Example Usage
-;; =============================================================================
+;; ## Example Usage
 
 (def sample-doc "Language models (LMs) built on the transformer neural network architecture and trained
 on a next-token prediction objective have demonstrated impressive capabilities across a
@@ -350,7 +277,7 @@ In this report, we first review transformer-based language models, setting some 
 and identifying a number of shortcomings in systems that rely primarily on language
 models operating end-to-end without additional structure. Then we introduce behavior
 trees, defining the core constructions that are useful for designing and reasoning about
-programs built with behavior trees. We then show how Dendron integrates language models
+programs built using behavior trees. We then that Dendron integrates language models
 into a behavior tree framework, and give three case studies demonstrating how several
 natural language tasks can be easily developed using the tools provided by Dendron. We
 conclude by reviewing opportunities for extending the behavior tree framework to build
@@ -358,9 +285,8 @@ more capable intelligent agents.")
 
 (def lm (dspy/LM "openai/gpt-4o-mini"))
 
-;; =============================================================================
-;; To run the example:
-;; =============================================================================
+;; ## Run the example
+
 (comment
   ;;1. Configure your LLM (you'll need API keys) 
   (dspy/configure :lm lm)
@@ -371,5 +297,4 @@ more capable intelligent agents.")
   ;;3. Run the complete example
   (analyze-document event-store sample-doc)
 
-  ""
-  )
+  "")

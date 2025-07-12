@@ -4,20 +4,16 @@
 (schema-util/defschemas events
   {:blackboard/value-set
    [:map
-    [:event/name [:= :blackboard/value-set]]
-    [:event/id :uuid]
-    [:event/timestamp inst?]
-    [:event/tags [:set [:tuple keyword? :uuid]]]
     [:key :keyword]
     [:value :any]]
    
    :blackboard/value-removed
    [:map
-    [:event/name [:= :blackboard/value-removed]]
-    [:event/id :uuid]
-    [:event/timestamp inst?]
-    [:event/tags [:set [:tuple keyword? :uuid]]]
-    [:key :keyword]]})
+    [:key :keyword]]
+   
+   :blackboard/state-initialized
+   [:map
+    [:initial-state [:map-of :keyword :any]]]})
 
 (schema-util/defschemas behavior-tree-config
   {:behavior-tree/sequence
