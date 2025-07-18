@@ -1,7 +1,7 @@
 (ns ai.obney.grain.event-store-v2.core.in-memory
   (:refer-clojure :exclude [read])
   (:require [ai.obney.grain.event-store-v2.interface.protocol :as p]
-            [ai.obney.grain.event-store-v2.interface :refer [->event]]
+            [ai.obney.grain.event-store-v2.core :refer [->event]]
             [com.brunobonacci.mulog :as u]
             [cognitect.anomalies :as anom]
             [clojure.set :as set]

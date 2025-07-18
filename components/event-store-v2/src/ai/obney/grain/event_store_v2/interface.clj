@@ -1,7 +1,8 @@
 (ns ai.obney.grain.event-store-v2.interface
   (:refer-clojure :exclude [read])
   (:require [ai.obney.grain.event-store-v2.interface.schemas]
-            [ai.obney.grain.event-store-v2.core :as core]))
+            [ai.obney.grain.event-store-v2.core :as core]
+            [ai.obney.grain.event-store-v2.core.in-memory]))
 
 (defn ->event
   [{:keys [_type _body _tags] :as args}]

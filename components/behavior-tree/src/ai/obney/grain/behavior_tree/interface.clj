@@ -38,7 +38,7 @@
         
         ;; Build tree and create context  
         tree (builder/build-behavior-tree tree-config)
-        context (builder/create-context blackboard :data context-data)
+        context (builder/create-context blackboard :data context-data :event-store event-store)
         
         ;; Execute the tree
         result (builder/run-tree tree context)]

@@ -3,7 +3,6 @@
             [ai.obney.grain.command-processor.interface :as cp]
             [ai.obney.grain.query-processor.interface :as qp]
             [ai.obney.grain.event-store-v2.interface :as es]
-            [ai.obney.grain.event-store-v2.core.in-memory]
             [ai.obney.grain.event-store-postgres-v2.interface]
             [ai.obney.grain.example-service.interface.read-models :as rm]
             [ai.obney.grain.time.interface :as time]

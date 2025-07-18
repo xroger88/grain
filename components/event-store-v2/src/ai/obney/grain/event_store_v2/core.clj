@@ -1,7 +1,7 @@
 (ns ai.obney.grain.event-store-v2.core
   (:refer-clojure :exclude [read])
   (:require [ai.obney.grain.event-store-v2.interface.schemas :as schemas]
-            [ai.obney.grain.event-store-v2.interface.protocol :as p :refer [start-event-store]]
+            [ai.obney.grain.event-store-v2.interface.protocol :as p :refer [start-event-store]] 
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]
             [ai.obney.grain.pubsub.interface :as pubsub]
             [ai.obney.grain.time.interface :as time]

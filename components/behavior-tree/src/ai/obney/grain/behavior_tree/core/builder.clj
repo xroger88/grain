@@ -68,8 +68,10 @@
 
 (defn create-context
   "Create a context for behavior tree execution"
-  [blackboard & {:keys [data] :or {data {}}}]
-  (merge {:blackboard blackboard} data))
+  [blackboard & {:keys [data event-store] :or {data {}}}]
+  (merge {:blackboard blackboard
+          :event-store event-store} 
+         data))
 
 (defn run-tree
   "Run a behavior tree with the given context"

@@ -3,7 +3,6 @@
             [ai.obney.grain.behavior-tree.interface.protocols :refer [execute-action evaluate-condition success failure]]
             [ai.obney.grain.clj-dspy.interface :as clj-dspy :refer [defsignature]]
             [ai.obney.grain.event-store-v2.interface :as event-store]
-            [ai.obney.grain.event-store-v2.core.in-memory]
             [ai.obney.grain.schema-util.interface :refer [defschemas]]
             [libpython-clj2.python :as py :refer [py.-]]
             [libpython-clj2.require :refer [require-python]]
@@ -29,33 +28,84 @@
 
 ;; ## DSPY Integration
 
-(defmulti create-dspy-module (fn [operation _] operation))
+ (defn extract-signature-metadata
+   "Extract input and output keys from a signature var's metadata"
+   [signature-var]
+   (let [metadata (meta signature-var)
+         dspy-meta (get metadata :dspy/signature)
+         inputs (keys (:inputs dspy-meta))
+         outputs (keys (:outputs dspy-meta))]
+     {:input-keys inputs
+      :output-keys outputs}))
 
-(defmethod create-dspy-module :predict [_ signature]
-  (dspy/Predict signature))
+(defmulti execute-dspy-operation 
+  "Execute DSPy operation: create module, run it, and emit events"
+  (fn [operation _signature _context _inputs] operation))
 
-(defmethod create-dspy-module :chain-of-thought [_ signature]
-  (dspy/ChainOfThought signature))
+(defn extract-outputs-from-result
+  "Extract outputs from DSPy result and convert to Clojure data"
+  [result context]
+  (let [{:keys [signature]} context
+        {:keys [output-keys]} (extract-signature-metadata signature)]
+    (reduce (fn [acc output-key]
+              (let [field-name (name output-key)
+                    output-value (py/get-attr result field-name)
+                    clj-value (let [v (py/->jvm output-value)]
+                                (cond
+                                  (map? v) (walk/keywordize-keys v)
+                                  :else v))]
+                (assoc acc output-key clj-value)))
+            {} output-keys)))
 
-(defmethod create-dspy-module :react [_ signature]
-  (dspy/ReAct signature))
+(defmethod execute-dspy-operation :predict [_ signature context inputs]
+  (let [python-signature (if (var? signature) @signature signature)
+        dspy-module (dspy/Predict python-signature)
+        result (apply dspy-module (apply concat inputs))
+        outputs (extract-outputs-from-result result context)]
+    
+    ;; Emit predicted event
+    (when-let [event-store (:event-store context)]
+      (when-let [node-id (:id context)]
+        (let [blackboard (:blackboard context)
+              blackboard-id (:blackboard-id blackboard)
+              event (event-store/->event 
+                      {:type :grain.agent/predicted
+                       :tags #{[:blackboard blackboard-id]}
+                       :body {:node-id node-id
+                              :inputs inputs
+                              :outputs outputs}})]
+          (println (event-store/append event-store {:events [event]})))))
+    
+    {:success true :outputs outputs}))
 
-(defmethod create-dspy-module :program-of-thought [_ signature]
-  (dspy/ProgramOfThought signature))
-
-(defn extract-signature-metadata
-  "Extract input and output keys from a signature var's metadata"
-  [signature-var]
-  (let [metadata (meta signature-var)
-        dspy-meta (get metadata :dspy/signature)
-        inputs (keys (:inputs dspy-meta))
-        outputs (keys (:outputs dspy-meta))]
-    {:input-keys inputs
-     :output-keys outputs}))
+(defmethod execute-dspy-operation :chain-of-thought [_ signature context inputs]
+  (let [python-signature (if (var? signature) @signature signature)
+        dspy-module (dspy/ChainOfThought python-signature)
+        result (apply dspy-module (apply concat inputs))
+        outputs (extract-outputs-from-result result context)
+        reasoning (try 
+                    (py/->jvm (py/get-attr result "reasoning"))
+                    (catch Exception _ "Reasoning not available"))]
+    
+    ;; Emit reasoned event
+    (when-let [event-store (:event-store context)]
+      (when-let [node-id (:id context)]
+        (let [blackboard (:blackboard context)
+              blackboard-id (:blackboard-id blackboard)
+              event (event-store/->event 
+                      {:type :grain.agent/reasoned
+                       :tags #{[:blackboard blackboard-id]}
+                       :body {:node-id node-id
+                              :inputs inputs
+                              :outputs outputs
+                              :reasoning reasoning}})]
+          (event-store/append event-store {:events [event]}))))
+    
+    {:success true :outputs outputs}))
 
 (defmethod execute-action :dspy [_ context]
   (let [{:keys [signature operation log-prefix]} context
-        {:keys [input-keys output-keys]} (extract-signature-metadata signature)]
+        {:keys [input-keys]} (extract-signature-metadata signature)]
     (try
       (let [blackboard (:blackboard context)
             inputs (reduce (fn [acc key]
@@ -65,22 +115,17 @@
                                  (reduced nil))))
                            {} input-keys)]
         (if inputs
-          (let [;; Get the actual Python signature class from the var
-                python-signature (if (var? signature) @signature signature)
-                dspy-module (create-dspy-module operation python-signature)
-                result (apply dspy-module (apply concat inputs))]
-            ;; Set all outputs to blackboard
-            (doseq [output-key output-keys]
-              (let [field-name (name output-key)  ; Convert keyword to string
-                    output-value (py/get-attr result field-name)
-                    ;; Convert Python objects to Clojure data structures
-                    clj-value (let [v (py/->jvm output-value)]
-                                (cond
-                                  (map? v) (walk/keywordize-keys v)
-                                  :else v))]
-                (bt/set-value blackboard output-key clj-value)))
-            (println (str "✓ " log-prefix) "completed successfully")
-            success)
+          (let [result (execute-dspy-operation operation signature context inputs)]
+            (if (:success result)
+              (do
+                ;; Set all outputs to blackboard
+                (doseq [[output-key output-value] (:outputs result)]
+                  (bt/set-value blackboard output-key output-value))
+                (println (str "✓ " log-prefix) "completed successfully")
+                success)
+              (do
+                (println (str "✗ " log-prefix " - DSPy operation failed"))
+                failure)))
           (do
             (println (str "✗ " log-prefix " - missing inputs: " (pr-str input-keys)))
             failure)))
@@ -102,6 +147,20 @@
     [:key_points :document/key-points]
     [:sentiment :document/sentiment]
     [:word_count :document/word-count]]})
+
+(defschemas agent-events
+  {:grain.agent/predicted
+   [:map
+    [:node-id :keyword]
+    [:inputs :map]
+    [:outputs :map]]
+   
+   :grain.agent/reasoned
+   [:map
+    [:node-id :keyword]
+    [:inputs :map]
+    [:outputs :map]
+    [:reasoning :string]]})
 
 
 ;; ## DSPY Models & Signatures
@@ -140,6 +199,16 @@
     (println "✓ Calculated word count:" word-count)
     success))
 
+(defmethod execute-action :test-event-store-access [_ context]
+  (let [event-store (:event-store context)]
+    (if event-store
+      (do
+        (println "✓ Event-store is accessible in context")
+        success)
+      (do
+        (println "✗ Event-store NOT accessible in context")
+        failure))))
+
 
 
 ;; ## Behavior Tree
@@ -157,14 +226,16 @@
    [:parallel {:success-threshold 2}
     [:retry {:max-retries 3}
      [:action
-      {:signature #'ExtractKeyPoints
-       :operation :predict
+      {:id :extract-key-points
+       :signature #'ExtractKeyPoints
+       :operation :chain-of-thought
        :log-prefix "Extracting key points"}
       :dspy]]
     [:retry {:max-retries 3}
      [:action
-      {:signature #'AnalyzeSentiment
-       :operation :predict
+      {:id :analyze-sentiment
+       :signature #'AnalyzeSentiment
+       :operation :chain-of-thought
        :log-prefix "Analyzing sentiment"}
       :dspy]]]
 
@@ -174,12 +245,12 @@
      {:key :key_points
       :schema :document/key-points}
      :has-value]
-    [:retry {:max-retries 3}
-     [:action
-      {:signature #'GenerateTitle
-       :operation :predict
-       :log-prefix "Generating title"}
-      :dspy]]]
+    [:action
+     {:id :generate-title
+      :signature #'GenerateTitle
+      :operation :chain-of-thought
+      :log-prefix "Generating title"}
+     :dspy]]
 
    ;; 4. Calculate word count deterministically
    [:action :calculate-word-count]
@@ -198,12 +269,12 @@
      {:key :word_count
       :schema :document/word-count}
      :has-value]
-    [:retry {:max-retries 3}
-     [:action
-      {:signature #'CreateFinalSummary
-       :operation :predict
-       :log-prefix "Creating final summary"}
-      :dspy]]]
+    [:action
+     {:id :create-final-summary
+      :signature #'CreateFinalSummary
+      :operation :chain-of-thought
+      :log-prefix "Creating final summary"}
+     :dspy]]
 
    [:condition
     {:key :final_summary
@@ -283,7 +354,7 @@ natural language tasks can be easily developed using the tools provided by Dendr
 conclude by reviewing opportunities for extending the behavior tree framework to build
 more capable intelligent agents.")
 
-(def lm (dspy/LM "openai/gpt-4o-mini"))
+(def lm (dspy/LM "openai/gpt-4o-mini" :cache false))
 
 ;; ## Run the example
 
@@ -297,4 +368,13 @@ more capable intelligent agents.")
   ;;3. Run the complete example
   (analyze-document event-store sample-doc)
 
+
+  (into [] (event-store/read
+            event-store
+            {:types #{:grain.agent/predicted
+                      :grain.agent/reasoned}}))
+
+  
   "")
+
+

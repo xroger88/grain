@@ -4,7 +4,6 @@
             [ai.obney.grain.behavior-tree.core.blackboard :as bb]
             [ai.obney.grain.behavior-tree.interface.protocols :refer [success failure]]
             [ai.obney.grain.event-store-v2.interface :as event-store]
-            [ai.obney.grain.event-store-v2.core.in-memory]
             [ai.obney.grain.schema-util.interface :refer [defschemas]]
             [clj-uuid :as uuid]))
 
