@@ -122,7 +122,7 @@
 (defn read
   [event-store {:keys [tags types after as-of]}]
   (let [tag-clauses (when tags
-                      [["tags = ?::text[]"
+                      [["tags = @> ?::text[]"
                         (into-array String
                                     (map #(str (key-fn (first %)) ":" (second %)) tags))]])
         clauses  (->> (concat tag-clauses
