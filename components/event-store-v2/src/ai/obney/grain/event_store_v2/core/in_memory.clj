@@ -26,7 +26,7 @@
                                (fn [event]
                                  (and
                                   (or (not tags)
-                                      (= tags (set/intersection (:event/tags event) tags)))
+                                      (set/subset? tags (:event/tags event)))
                                   (or (not types)
                                       (contains? types (:event/type event)))
                                   (cond
