@@ -15,6 +15,7 @@
         poly/todo-processor {:local/root "../../components/todo-processor"}
         poly/periodic-task {:local/root "../../components/periodic-task"}
         poly/behavior-tree {:local/root "../../components/behavior-tree"}
+        poly/behavior-tree-v2 {:local/root "../../components/behavior-tree-v2"}
         poly/clj-dspy {:local/root "../../components/clj-dspy"}}
 
  :aliases {:test {:extra-paths []
