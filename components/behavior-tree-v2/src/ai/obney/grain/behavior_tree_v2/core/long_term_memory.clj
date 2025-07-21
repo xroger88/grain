@@ -18,6 +18,8 @@
    "
   [{{:keys [event-store read-model-fn queries]} :config 
     :keys [state] :as _this}]
+  (when-not (and event-store read-model-fn queries)
+    (throw (ex-info "Long Term Memory not configured" {})))
   (let [{:keys [snapshot latest-event-id]} @state
         events (mapcat
                 (fn [query]

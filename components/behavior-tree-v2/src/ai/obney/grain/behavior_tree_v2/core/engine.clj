@@ -1,20 +1,20 @@
 (ns ai.obney.grain.behavior-tree-v2.core.engine
   (:require [ai.obney.grain.behavior-tree-v2.interface.protocol :as p]
-            [ai.obney.grain.behavior-tree-v2.core.nodes :as nodes]
             [ai.obney.grain.behavior-tree-v2.core.long-term-memory :as ltm]))
 
 (defn build
   "Build a behavior tree from a config vector."
-  [[node-type & args]] 
-  (p/build node-type args))
+  [[node-type & args :as _config] 
+   {:keys [_event-store st-memory] :as context}]
+  {:tree (p/build node-type args)
+   :context (assoc context
+                   :lt-memory (ltm/->long-term-memory context)
+                   :st-memory (atom (or st-memory {})))})
 
 (defn run
   "Run the behavior tree with the given context."
-  [config {:keys [_event-store] :as context}]
-  (let [tree (build config)]
-    (p/tick tree (assoc context
-                        :lt-memory (ltm/->long-term-memory context)
-                        :st-memory (atom {})))))
+  [{:keys [tree context] :as _bt}]
+  (p/tick tree context))
 
 (comment
 
@@ -65,5 +65,4 @@
     :read-model-fn (fn [_ _] {})
     :queries []})
 
-  ""
-  )
+  "")
