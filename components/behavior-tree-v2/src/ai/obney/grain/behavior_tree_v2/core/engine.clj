@@ -1,6 +1,7 @@
 (ns ai.obney.grain.behavior-tree-v2.core.engine
   (:require [ai.obney.grain.behavior-tree-v2.interface.protocol :as p]
-            [ai.obney.grain.behavior-tree-v2.core.long-term-memory :as ltm]))
+            [ai.obney.grain.behavior-tree-v2.core.long-term-memory :as ltm]
+            [ai.obney.grain.behavior-tree-v2.core.nodes]))
 
 (defn build
   "Build a behavior tree from a config vector."
