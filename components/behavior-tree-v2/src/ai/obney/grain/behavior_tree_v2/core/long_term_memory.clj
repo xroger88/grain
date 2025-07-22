@@ -31,7 +31,7 @@
         read-model (read-model-fn (or snapshot {}) events)]
     (swap! state assoc 
            :snapshot read-model 
-           :latest-event-id (if events (->> events last :event/id) latest-event-id))
+           :latest-event-id (if (seq events) (->> events last :event/id) latest-event-id))
     read-model))
 
 (defrecord LongTermMemoryEventStore [config]
