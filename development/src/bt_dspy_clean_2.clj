@@ -123,11 +123,13 @@
              :as context}]
   (let [{:keys [input-keys]} (extract-signature-metadata signature)]
     (try
-      (let [inputs (reduce (fn [acc key]
-                             (let [value (get @st-memory key)]
+      (let [state (cond-> @st-memory
+                    (:lt-memory context) (merge (btp/latest (:lt-memory context))))
+            inputs (reduce (fn [acc key] 
+                             (let [value (get state key)]
                                (if value
                                  (assoc acc key value)
-                                 (reduced nil))))
+                                 acc)))
                            {} input-keys)]
         (if inputs
           (let [result (execute-dspy-operation operation signature context inputs)]
