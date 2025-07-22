@@ -37,7 +37,7 @@
 (defrecord LongTermMemoryEventStore [config]
   p/LongTermMemory
   (latest [this]
-    (latest (assoc this :state (atom {:snapshot {}})))))
+    (latest this)))
 
 (defn ->long-term-memory
   [config]
