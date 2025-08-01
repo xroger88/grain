@@ -58,12 +58,5 @@
   (def event-store
     (es/start {:conn {:type :in-memory}}))
 
-  (run
-   [:sequence
-    [:action (fn [context] (swap! (:st-memory context) assoc :hello "world") p/success)]
-    [:condition (fn [context] (= "world" (get @(:st-memory context) :hello)))]]
-   {:event-store event-store
-    :read-model-fn (fn [_ _] {})
-    :queries []})
 
   "")
