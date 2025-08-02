@@ -55,10 +55,11 @@
   "Extract outputs from DSPy result and convert to Clojure data"
   [result context]
   (let [{:keys [signature]} (:opts context)
-        {:keys [output-keys]} (extract-signature-metadata signature)]
+        {:keys [output-keys]} (extract-signature-metadata signature)
+        result* (py.- result :outputs)]
     (reduce (fn [acc output-key]
               (let [field-name (name output-key)
-                    output-value (py/get-attr result field-name)
+                    output-value (py/get-attr result* field-name)
                     clj-value (let [v (py/->jvm output-value)]
                                 (cond
                                   (map? v) (walk/keywordize-keys v)
@@ -132,7 +133,7 @@
                                  acc)))
                            {} input-keys)]
         (if inputs
-          (let [result (execute-dspy-operation operation signature context inputs)]
+          (let [result (execute-dspy-operation operation signature context {:inputs inputs})]
             (doseq [[output-key output-value] (:outputs result)]
               (swap! st-memory assoc output-key output-value))
             (println (str "✓ " id) "completed successfully")
@@ -266,6 +267,8 @@
   (let [bt (bt2/build
             document-analysis-tree
             {:event-store event-store
+             :queries []
+             :read-model-fn (fn [_ _] {})
              :st-memory {:document document}})
         result (bt2/run bt)]
     (println result)))
@@ -346,6 +349,7 @@ more capable intelligent agents.")
    document-analysis-tree)
 
 
+  1
 
  
   
