@@ -1,12 +1,18 @@
 (ns ai.obney.grain.event-store-v2.interface.schemas
-  (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]
-            [clj-uuid :as uuid]))
+  (:require [ai.obney.grain.schema-util.interface :refer [register!]]
+            #?@(:clj  [[clj-uuid :as uuid]]
+                :cljs [["uuid" :as uuid*]])))
 
 (defn- as-of-or-after [x] (not (and (:as-of x) (:after x))))
 
-(defn- uuid-v7? [x] (and (uuid? x) (= 7 (uuid/get-version x))))
+#?(:clj (defn- uuid-v7? [x] (and (uuid? x) (= 7 (uuid/get-version x))))
+   :cljs (defn uuid-v7? [x]
+           (let [x* (str x)]
+             (boolean
+              (and (uuid*/validate x*)
+                   (= (uuid*/version x*) 7))))))
 
-(defschemas api
+(register!
   {::entity-type :keyword
    ::entity-id :uuid
    ::tag [:tuple ::entity-type ::entity-id]
@@ -63,38 +69,3 @@
    [:map
     [:event-ids [:set ::id]]
     [:metadata {:optional true} [:map]]]})
-
-(comment
-
-  (require '[ai.obney.grain.time.interface :as t]
-           '[malli.core :as mc])
-
-
-  (mc/explain
-   ::read-args
-   {:tags #{[:user (random-uuid)]
-            [:course (random-uuid)]}
-    :types #{:user-enrolled
-             :course-created
-             :course-name-changed}})
-
-  (mc/explain
-   ::append-args
-   {:events [{:event/id (uuid/v7)
-              :event/timestamp (t/now)
-              :event/tags #{}
-              :event/type :user-name-changed
-              :first-name "Cameron"
-              :last-name "Barre"}]
-    :tx-metadata {:hello "world"}
-    :cas {:predicate-fn (fn [events] (empty? events))
-          :tags #{[:user (uuid/v7)]}
-          :types #{:user-name-changed}}})
-  
-  (mc/explain ::entity-type "tset")
-
-  
-
-
-  ""
-  )

@@ -1,18 +1,21 @@
 (ns ai.obney.grain.event-store-v2.core
   (:refer-clojure :exclude [read])
   (:require [ai.obney.grain.event-store-v2.interface.schemas :as schemas]
-            [ai.obney.grain.event-store-v2.interface.protocol :as p :refer [start-event-store]] 
+            [ai.obney.grain.event-store-v2.interface.protocol :as p :refer [start-event-store]]
             [ai.obney.grain.anomalies.interface :refer [anomaly?]]
             [ai.obney.grain.pubsub.interface :as pubsub]
             [ai.obney.grain.time.interface :as time]
-            [clj-uuid :as uuid]
-            [com.brunobonacci.mulog :as u]
             [malli.core :as mc]
-            [cognitect.anomalies :as anom]))
+            [cognitect.anomalies :as anom]
+            #?@(:clj [[clj-uuid :as uuid]
+                      [com.brunobonacci.mulog :as u]]
+                :cljs [[cljs.core :refer [ExceptionInfo]]
+                       ["uuid" :refer [v7]]]))
+  #?(:clj (:import [clojure.lang ExceptionInfo])))
 
 (defmethod start-event-store :default
   [{{:keys [type]} :conn}]
-  (throw (ex-info (format "Unsupported event store type: %s" type) {:type type})))
+  (throw (ex-info (str "Unsupported event store type: " type) {:type type})))
 
 (defn start
   [config]
@@ -30,18 +33,18 @@
    {:keys [events] :as args}]
   (let [validation-errors
         (or
-         
+
          ;; Invalid arguments
          (when-let [validation-error (mc/explain ::schemas/append-args args)]
            {::anom/category ::anom/incorrect
             ::anom/message "Invalid arguments"
             :explain/data validation-error})
-         
+
          ;; Schema validation issues
          (try (->> events
                    (mapv #(mc/explain [:and ::schemas/event (:event/type %)] %))
                    (filterv (complement nil?)))
-              (catch clojure.lang.ExceptionInfo _
+              (catch ExceptionInfo _
                 {::anom/category ::anom/fault
                  ::anom/message "One or more event schemas are not defined for :event/type"
                  ::event-names (set (map :event/name events))})))]
@@ -51,7 +54,7 @@
 
       (seq validation-errors)
       (do
-        (u/log ::validation-errors :validation-errors validation-errors)
+        #?(:clj (u/log ::validation-errors :validation-errors validation-errors))
         {::anom/category ::anom/fault
          ::anom/message "Invalid Event(s): Failed Schema Validation"
          :error/explain validation-errors})
@@ -78,7 +81,8 @@
      ::anom/message "Invalid arguments"
      :explain/data validation-error}
     (merge
-     {:event/id (uuid/v7)
+     {:event/id #?(:clj (uuid/v7)
+                   :cljs (uuid (v7)))
       :event/timestamp (time/now)
       :event/type type
       :event/tags tags}

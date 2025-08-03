@@ -1,4 +1,4 @@
 {:paths ["src" "resources"]
- :deps {}
+ :deps {tick/tick {:mvn/version "1.0"}}
  :aliases {:test {:extra-paths ["test"]
                   :extra-deps {}}}}
