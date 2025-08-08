@@ -50,26 +50,26 @@
     ;; Default fallback
     :else "Any"))
 
-  (defn expand-with-props
-  "Fully expand `schema` using `registry` (map or atom), preserving node & per-key option maps.
-     Follows keyword refs; guards cycles."
+(defn expand-with-props
+  "Fully expand `schema` using `registry` (map/atom/registry), preserving node + per-key option maps.
+   Follows keyword refs via m/deref; guards cycles by keyword."
   ([registry schema]
    (expand-with-props registry schema #{}))
   ([registry schema seen]
    (let [reg (if (instance? clojure.lang.IDeref registry) @registry registry)
          s   (m/schema schema {:registry reg})
 
-         ;; follow keyword refs present in registry, stop on cycles
+         ;; follow refs until not a keyword form (or cycle)
          node (loop [sch s, seen seen]
                 (let [f (m/form sch)]
-                  (if (and (keyword? f) (contains? reg f) (not (seen f)))
+                  (if (and (keyword? f) (not (seen f)))
                     (recur (m/deref sch) (conj seen f))
                     sch)))
 
          form (m/form node)]
 
      (cond
-       ;; --- MAP: rebuild entries, only recursing into the entry's value schema
+       ;; --- MAP: rebuild entries, preserving per-key opts; recurse only into value schema
        (and (vector? form) (= :map (first form)))
        (let [[_ & xs] form
              [opts entries] (if (and (seq xs) (map? (first xs)))
@@ -78,20 +78,20 @@
              props (merge opts (m/properties node))
              expand-entry
              (fn [e]
-               (let [[k & rest] e
-                     [kopts [vsch]] (if (and (seq rest) (map? (first rest)))
-                                      [(first rest) (rest rest)]
-                                      [nil rest])
-                     vsch' (expand-with-props reg vsch seen)]
-                 (cond-> [k]
-                   (seq kopts) (conj kopts)
-                   true        (conj vsch'))))]
+               (let [[k a b & more] e
+                     [kopts v] (if (map? a) [a b] [nil a])]
+                 (when (seq more)
+                   (throw (ex-info "Unexpected extra items in :map entry" {:entry e})))
+                 (let [v' (expand-with-props reg v seen)]
+                   (cond-> [k]
+                     (seq kopts) (conj kopts)
+                     true        (conj v')))))]
          (into [:map]
                (cond-> []
                  (seq props) (conj props)
                  true        (into (map expand-entry entries)))))
 
-       ;; map-of: children are key-schema and value-schema; recurse both
+       ;; --- MAP-OF: recurse key + value schemas
        (and (vector? form) (= :map-of (first form)))
        (let [[_ & xs] form
              [opts [ksch vsch]] (if (and (seq xs) (map? (first xs)))
@@ -102,9 +102,9 @@
                (cond-> []
                  (seq props) (conj props)
                  true        (into [(expand-with-props reg ksch seen)
-                                    (expand-with-props reg vsch seen)]))))
+                                    (expand-with-props reg vsch  seen)]))))
 
-       ;; generic vector node (e.g. :vector, :sequential, :tuple, :maybe, etc.)
+       ;; --- Generic vector node (e.g. :vector, :sequential, :tuple, :maybe, :or, ...)
        (vector? form)
        (let [[t & xs] form
              [opts children] (if (and (seq xs) (map? (first xs)))
@@ -117,7 +117,7 @@
                  (seq props) (conj props)
                  true        (into kids))))
 
-       ;; leaf (e.g. :string, :int, keyword predicate, etc.)
+       ;; --- Leaf (e.g. :string, :int, predicate keywords)
        :else
        (let [props (m/properties node)]
          (if (seq props) [form props] form))))))
@@ -252,7 +252,7 @@
     "A test signature"
     {:inputs {:b ::b}
      :outputs {:result :string}})
-  
+
   (require-python '[dspy :as dspy])
 
 
@@ -264,6 +264,67 @@
 
 
   (m/deref-recursive ::b)
+
+
+
+  (defschemas domain
+    {::instruction [:string {:desc "Instruction to help produce an objective"}]
+     ::objective [:string {:desc "Objective to be used by the agent"}]
+     ::tool-arg [:map
+                 [:name {:desc "Name of the argument"} :string]
+                 [:description {:desc "Description of the argument"} :string]
+                 [:type {:desc "Type of the argument"} :string]]
+     ::tools [:vector {:desc "List of tools available to the agent"}
+              [:map
+               [:name {:desc "Name of the tool"} :string]
+               [:priority {:desc "Relative priority of the tool when choosing"} :int]
+               [:description {:desc "Description of the tool"} :string]
+               [:args {:desc "Arguments for the tool"} [:vector ::tool-arg]]]]
+     ::tool-result [:map
+                    [:name {:desc "Name of the tool"} :string]
+                    [:args {:desc "Arguments for the tool"} [:vector :string]]
+                    [:result {:desc "Result of the tool call"} :string]]
+     ::tool-results [:vector {:desc "Results from previous tool calls"} ::tool-result]
+     ::tool-choice [:string {:desc "Selected tool name"}]
+     ::tool-args [:vector {:desc "Arguments for the tool"} :string]
+     ::analysis-result [:string {:desc "Result of the analysis :complete, :incomplete"}]
+     ::todo-list [:vector [:map [:is_completed :boolean] [:task :string]]]
+     ::next-step [:string {:desc "Next step to take"}]
+     ::issues-identified [:vector
+                          {:desc "A list of dictionaries where the keys are the issue identified from the past tool use and the impact it has on the instruction objective"}
+                          [:map
+                           [:issue :string]
+                           [:impact :string]]]})
+
+  (defsignature SelectTool
+    "Use the available tools, tool_results, and reasoning_chain to select a tool to use
+   that best advances progress towards the instruction.
+
+   CRITICAL: You must NOT select a tool call that has already occurred. 
+   Check tool_results carefully - each entry shows [name, args, result].
+   
+   If the most recent tool call did not yield good results, try again with new args.
+
+   Prioritize tools that have yielded useful results in similar situations. 
+   Avoid tools that have consistently resulted in errors or empty outputs.
+
+   Consider issues_identified from past tool use.
+
+   If you've already tried a tool/args combination, DO NOT try it again.
+   
+   Act in a way that optimizes context length efficiency.
+   
+   If no further tool calls are necessary or possible tool_choice should be None"
+    {:inputs {:instruction ::instruction
+              :reasoning_chain [:vector :string]
+              :tool_results ::tool-results
+              :tools ::tools
+              :issues_identified ::issues-identified
+              :next_step ::next-step}
+     :outputs {:tool_choice ::tool-choice
+               :tool_args ::tool-args}})
+
+  (expand-with-props (mr/schemas m/default-registry) ::tool-results)
 
   ""
   )
