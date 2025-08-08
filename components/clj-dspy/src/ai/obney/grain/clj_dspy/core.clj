@@ -25,8 +25,8 @@
                     (drop 2 schema)
                     (rest schema))]
       (str "TypedDict('" (gensym "T") "', {"
-           (str/join ", " (map (fn [[k v]]
-                                 (str "\"" (name k) "\": " (malli-schema->python-type v)))
+           (str/join ", " (map (fn [[k o v]] 
+                                 (str "\"" (name k) "\": " (malli-schema->python-type (or v o))))
                                entries))
            "})"))
     
