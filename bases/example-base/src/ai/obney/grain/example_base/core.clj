@@ -33,8 +33,9 @@
   {::logger {}
    ::event-store {:logger (ig/ref ::logger)
                   :event-pubsub (ig/ref ::event-pubsub)
-                  :conn {:type :postgres
-                         :server-name "localhost"
+                  :conn {:type :in-memory ;; change to :postgres to try Postgres
+                         ;; uncomment below to try Postgres
+                         #_#_#_#_#_#_#_#_#_#_:server-name "localhost"
                          :port-number "5433"
                          :username "postgres"
                          :password "password"
@@ -77,21 +78,7 @@
 (defmethod ig/init-key ::logger [_ _]
   (let [console-pub-stop-fn
         (u/start-publisher! {:type :console-json
-                             :pretty? false
-                             :transform
-                             #(map (fn [log] (case (:mulog/event-name log)
-                                               :ai.obney.event-store.core.postgres/storing-events
-                                               (update log
-                                                       :ai.obney.event-store.core.postgres/events
-                                                       (fn [events]
-                                                         (map (fn [e]
-                                                                (cond-> e
-                                                                  (:embedding e) (assoc :embedding :truncated)
-                                                                  (:access-token e) (assoc :access-token :truncated)
-                                                                  (:text e) (assoc :text :truncated)))
-                                                              events)))
-                                               log))
-                                   %)})
+                             :pretty? false})
 
         cloudwatch-emf-pub-stop-fn
         (u/start-publisher!
