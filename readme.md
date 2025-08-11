@@ -19,7 +19,7 @@ We have taken a look at the landscape of Agent Frameworks and determined two thi
 
 Grain’s Agent Framework integrates directly with your Event-Sourced domain. Grain Agents are built with:
 
-- [Fully declarative Behavior Trees](arxiv.org/abs/2404.07439)
+- [Fully declarative Behavior Trees](https://arxiv.org/abs/2404.07439)
 - High leverage integration with [DSPY](https://dspy.ai/)
 - Short-term program memory
 - Long-term, event-sourced memory e.g. projections over your domain events.
