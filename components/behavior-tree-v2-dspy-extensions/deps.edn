@@ -1,5 +1,4 @@
 {:paths ["src" "resources"]
- :deps {com.brunobonacci/mulog-adv-console {:mvn/version "0.9.0"}}
+ :deps {clj-python/libpython-clj {:mvn/version "2.025"}}
  :aliases {:test {:extra-paths ["test"]
                   :extra-deps {}}}}
-

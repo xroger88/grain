@@ -206,6 +206,7 @@
 
                      "setattr(" module ", '" model-name "Outputs" "', " model-name "Outputs" ")\n"
                      "globals()['" module "." model-name "Outputs" "'] = " model-name "Outputs" "\n")]
+    (spit "blah.py" python-code)
     (py/run-simple-string python-code)
     (py/get-item (py/module-dict (py/import-module "__main__")) (str module "." model-name))))
 
@@ -325,6 +326,29 @@
                :tool_args ::tool-args}})
 
   (expand-with-props (mr/schemas m/default-registry) ::tool-results)
+
+
+  (defschemas schema
+    {::conversation                 [:vector
+                                     {:desc "Conversation history"}
+                                     [:map
+                                      [:role :string]
+                                      [:content :string]]]
+
+     ::question                     [:string {:desc "User question"}]
+
+     ::sufficient-context           [:boolean {:desc "True if you have enough context to answer the question"}]
+
+     ::further-clarification-needed [:boolean {:desc "True if you need to ask the user for more information"}]
+
+     ::answer                       [:string {:desc "Answer to the question"}]})
+
+  (defsignature DecideIfContextIsSufficient
+    "Given the conversation history and the user's question, decide if you have enough context to answer the question.
+     Assume the user is asking a question about their project unless they specify otherwise."
+    {:inputs {:conversation ::conversation
+              :question ::question}
+     :outputs {:sufficient_context ::sufficient-context}})
 
   ""
   )

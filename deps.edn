@@ -15,17 +15,15 @@
                                poly/query-processor {:local/root "components/query-processor"}
                                poly/query-request-handler {:local/root "components/query-request-handler"}
                                poly/query-schema {:local/root "components/query-schema"}
-                               poly/event-store {:local/root "components/event-store"}
                                poly/event-store-v2 {:local/root "components/event-store-v2"}
-                               poly/event-store-postgres {:local/root "components/event-store-postgres"}
                                poly/event-store-postgres-v2 {:local/root "components/event-store-postgres-v2"}
                                poly/pubsub {:local/root "components/pubsub"}
                                poly/todo-processor {:local/root "components/todo-processor"}
                                poly/periodic-task {:local/root "components/periodic-task"}
                                poly/mulog-aws-cloudwatch-emf-publisher {:local/root "components/mulog-aws-cloudwatch-emf-publisher"}
                                poly/event-model {:local/root "components/event-model"}
-                               poly/behavior-tree {:local/root "components/behavior-tree"}
                                poly/behavior-tree-v2 {:local/root "components/behavior-tree-v2"}
+                               poly/behavior-tree-v2-dspy-extensions {:local/root "components/behavior-tree-v2-dspy-extensions"}
                                poly/clj-dspy {:local/root "components/clj-dspy"}
 
                                ;; Examples

@@ -1,4 +1,4 @@
 {:paths ["src" "resources"]
- :deps {}
+ :deps {com.cognitect/anomalies {:mvn/version "0.1.12"}}
  :aliases {:test {:extra-paths ["test"]
                   :extra-deps {}}}}

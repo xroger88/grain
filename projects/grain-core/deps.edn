@@ -9,14 +9,11 @@
         poly/query-processor {:local/root "../../components/query-processor"}
         poly/query-request-handler {:local/root "../../components/query-request-handler"}
         poly/query-schema {:local/root "../../components/query-schema"}
-        poly/event-store {:local/root "../../components/event-store"}
         poly/event-store-v2 {:local/root "../../components/event-store-v2"}
         poly/pubsub {:local/root "../../components/pubsub"}
         poly/todo-processor {:local/root "../../components/todo-processor"}
         poly/periodic-task {:local/root "../../components/periodic-task"}
-        poly/behavior-tree {:local/root "../../components/behavior-tree"}
-        poly/behavior-tree-v2 {:local/root "../../components/behavior-tree-v2"}
-        poly/clj-dspy {:local/root "../../components/clj-dspy"}}
+        poly/behavior-tree-v2 {:local/root "../../components/behavior-tree-v2"}}
 
  :aliases {:test {:extra-paths []
                   :extra-deps  {}}}}

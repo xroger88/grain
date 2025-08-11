@@ -1,21 +1,45 @@
 (ns ai.obney.grain.behavior-tree-v2.core.engine
   (:require [ai.obney.grain.behavior-tree-v2.interface.protocol :as p]
             [ai.obney.grain.behavior-tree-v2.core.long-term-memory :as ltm]
-            [ai.obney.grain.behavior-tree-v2.core.nodes]))
+            [ai.obney.grain.behavior-tree-v2.core.nodes]
+            [malli.core :as m]))
 
 (defn build
   "Build a behavior tree from a config vector."
   [[node-type & args :as _config] 
-   {:keys [_event-store st-memory] :as context}]
+   {:keys [event-store queries read-model-fn st-memory] :as context}]
   {:tree (p/build node-type args)
-   :context (assoc context
-                   :lt-memory (ltm/->long-term-memory context)
-                   :st-memory (atom (or st-memory {})))})
+   :context (cond-> context
+              :always (assoc :st-memory (atom (or st-memory {})))
+              (and event-store queries read-model-fn)
+              (assoc :lt-memory (ltm/->long-term-memory context)))})
 
 (defn run
   "Run the behavior tree with the given context."
   [{:keys [tree context] :as _bt}]
   (p/tick tree context))
+
+;; ## Custom Behavior Tree Conditions
+
+(defn st-memory-has-value?
+  [{{:keys [path schema]} :opts
+    :keys [st-memory]}]
+  (let [st-memory-state @st-memory]
+    (m/validate
+     schema
+     (if path
+       (get-in st-memory-state path)
+       st-memory-state))))
+
+(defn lt-memory-has-value?
+  [{{:keys [path schema]} :opts
+    :keys [lt-memory]}]
+  (let [lt-memory-state (p/latest lt-memory)]
+    (m/validate
+     schema
+     (if path
+       (get-in lt-memory-state path)
+       lt-memory-state))))
 
 (comment
 

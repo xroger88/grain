@@ -13,3 +13,14 @@
 (defn run 
   [bt]
   (core/run bt))
+
+(defn st-memory-has-value?
+  [{{:keys [_path _schema]} :opts
+    :keys [_st-memory]
+    :as args}]
+  (core/st-memory-has-value? args))
+
+(defn lt-memory-has-value?
+  [{{:keys [_path _schema]} :opts
+    :keys [_lt-memory] :as args}]
+  (core/lt-memory-has-value? args))

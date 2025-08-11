@@ -1,0 +1,13 @@
+{:deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        gde/anomalies {:local/root "../../components/anomalies"}
+        gde/time {:local/root "../../components/time"}
+        gde/clj-dspy {:local/root "../../components/clj-dspy"}
+        gde/schema-util {:local/root "../../components/schema-util"}
+        gde/pubsub {:local/root "../../components/pubsub"}
+        gde/event-store-v2 {:local/root "../../components/event-store-v2"}
+        gde/behavior-tree-v2 {:local/root "../../components/behavior-tree-v2"}
+        gde/behavior-tree-v2-dspy-extensions {:local/root "../../components/behavior-tree-v2-dspy-extensions"}}
+
+ :aliases {:test {:extra-paths []
+                  :extra-deps  {}}}}
+
