@@ -2,6 +2,7 @@
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]))
 
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas schemas
   {::query-id :uuid
    ::query-name :qualified-keyword

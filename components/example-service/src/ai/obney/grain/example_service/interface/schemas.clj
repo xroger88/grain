@@ -8,6 +8,7 @@
    and event-store."
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas commands
   {:example/create-counter
    [:map
@@ -24,6 +25,7 @@
    :example/calculate-average-counter-value
    [:map]})
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas events
   {:example/counter-created
    [:map
@@ -42,6 +44,7 @@
    [:map
     [:value :double]]})
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas queries
   {:example/counters
    [:map]

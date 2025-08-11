@@ -2,6 +2,7 @@
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]
             [malli.core :as m]))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas event-model
   {:command-name [:fn #(and (qualified-keyword? %)
                             (= "command" (namespace %)))]
