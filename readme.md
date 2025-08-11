@@ -15,7 +15,7 @@ Yes, Grain does have an Agent Framework that is highly integrated into its ecosy
 1. There are better ways to go about it than what most existing Agent Frameworks are doing.
 2. Agent Frameworks are not rocket science, they are largely just orchestration engines, so it's ok to make your own if you have a good reason.
 
-There will be further documentation on how Grain Agents work, but in short, they are powered by fully declarative [Behavior Trees](arxiv.org/abs/2404.07439), have short-term program memory, and have long-term memory Event Sourced memory, such that an Agent's long-term memory is a projection or snapshot over a subset of events in your Domain. This property is what makes Grain Agents first-class citizens in your Event Sourced Domain.
+There will be further documentation on how Grain Agents work, but in short, they are powered by fully declarative [Behavior Trees](arxiv.org/abs/2404.07439), have short-term program memory, and have long-term Event Sourced memory, such that an Agent's long-term memory is a projection or snapshot over a subset of events in your Domain. This property is what makes Grain Agents first-class citizens in your Event Sourced Domain.
 
 ## Can I use it?
 
