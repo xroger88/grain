@@ -26,6 +26,8 @@ Grain’s Agent Framework integrates directly with your Event-Sourced domain. Gr
 
 This means your agents can reason over the same source of truth as the rest of your system.
 
+A few demos are available [here](https://github.com/ObneyAI/macroexpand-2-demo)
+
 ## Can I use it?
 
 Yes, you can use it. Grain is MIT licensed software. We use Grain in production for our clients, but that doesn't mean it's perfect or ready in every way. Large portions of Grain are relatively stable at this point, such as the core CQRS / Event Sourcing components, but other aspects may change rapidly, such as the components that make up the Agent Framework.
