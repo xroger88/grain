@@ -2,6 +2,7 @@
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]
             [ai.obney.grain.webserver.core :as core]))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas schemas
   {::routes :set
    ::port :int

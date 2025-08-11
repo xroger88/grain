@@ -18,7 +18,7 @@
              [queries :as queries]
              [todo-processors :as todo-processors]
              [periodic-tasks :as periodic-tasks]
-             [schemas :as schemas]]))
+             [schemas]]))
 
 ;; --------------------- ;;
 ;; Service Configuration ;;

@@ -1,5 +1,5 @@
 (ns ai.obney.grain.clj-dspy.core
-  (:require [libpython-clj2.python :as py :refer [py. py.-]]
+  (:require [libpython-clj2.python :as py]
             [libpython-clj2.require :refer [require-python]]
             [malli.core :as m]
             [malli.registry :as mr]

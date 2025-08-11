@@ -2,7 +2,7 @@
   (:require [ai.obney.grain.behavior-tree-v2.interface.protocol :as p :refer [opts+children]]))
 
 (defmethod p/tick :default
-  [node context]
+  [node _context]
   (throw (ex-info "Node type not implemented" {:node node})))
 
 ;;

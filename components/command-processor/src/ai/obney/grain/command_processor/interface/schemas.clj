@@ -1,6 +1,7 @@
 (ns ai.obney.grain.command-processor.interface.schemas
   (:require [ai.obney.grain.schema-util.interface :refer [defschemas]]))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defschemas schemas
   {::command-id :uuid
    ::command-name :qualified-keyword

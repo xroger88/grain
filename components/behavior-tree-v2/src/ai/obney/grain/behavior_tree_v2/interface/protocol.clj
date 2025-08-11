@@ -12,12 +12,6 @@
   "Build a behavior tree node based on its type."
   (fn [type _args] type))
 
-(defmulti condition
-  (fn [condition-key _context] condition-key))
-
-(defmulti action
-  (fn [action-key _context] action-key))
-
 (defn opts+children
   "Extract options and children from the config vector."
   [args]

@@ -58,7 +58,7 @@
                      reduced-result)))))))
 
    :cljs (defn read
-           [event-store {:keys [tags types as-of after] :as args}]
+           [event-store {:keys [tags types as-of after] :as _args}]
            (let [filtered-events (->> (-> event-store :state deref :events)
                                       (filter
                                        (fn [event]
