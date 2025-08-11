@@ -90,5 +90,12 @@ We think the dependency on Python is pretty neat! Python is really in the spotli
 Grain uses [mulog](https://github.com/BrunoBonacci/mulog) for logging and tracing. This is good for you, because it means if you have a preferred logging solution, all you have to do is implement a custom mulog publisher, intercept Grain's logs, and translate them into your own logging solution. This package is a custom publisher that we use to enable automatic creation of CloudWatch metrics in AWS for Dashboards, Alerting, and other observability use-cases.
 
 ## What's next?
+
 - Comprehensive Documentation
 - More examples
+
+## Contact Us
+
+If you have questions or want help getting started, then feel free to come find us in the Clojurian Slack in the [#grain](https://clojurians.slack.com/archives/C099K3D7XRV) channel.
+
+If you have feedback or find bugs or problems, feel free to create a github issue.
