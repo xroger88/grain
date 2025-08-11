@@ -87,7 +87,7 @@ obneyai/grain-core
 This is a Postgres backend for the Event Store component, pull it in and require the `ai.obney.grain.event-store-postgres-v2.interface` namespace to load its multimethod implementation. This will allow you to simply switch between `:in-memory` and `:postgres` with a one line change with no other code changes required. Our event-store-v2 component is protocol-driven and presents a consistent API to callers, backends are expected to implement the spec. You can even implement your own backend!
 
 ```clojure
-obneyai/grain-core
+obneyai/grain-event-store-postgres-v2
 {:git/url "https://github.com/ObneyAI/grain.git"
  :sha "8a21606939d82959b03d16151e825e9b1e9e34f7"
  :deps/root "projects/grain-event-store-postgres-v2"}
@@ -100,7 +100,7 @@ This is where the magic of Grain's Agent Framework happens. [DSPY](https://dspy.
 We think the dependency on Python is pretty neat! Python is really in the spotlight these days thanks to a lot of applied AI tooling being heavily Python based. It's fantastic that a Clojure application can combine the best of both the JVM and Python in order to create an innovative product that is more than the sum of its parts.
 
 ```clojure
-obneyai/grain-core
+obneyai/grain-dspy-extensions
 {:git/url "https://github.com/ObneyAI/grain.git"
  :sha "8a21606939d82959b03d16151e825e9b1e9e34f7"
  :deps/root "projects/grain-dspy-extensions"}
@@ -111,7 +111,7 @@ obneyai/grain-core
 Grain uses [mulog](https://github.com/BrunoBonacci/mulog) for logging and tracing. This is good for you, because it means if you have a preferred logging solution, all you have to do is implement a custom mulog publisher, intercept Grain's logs, and translate them into your own logging solution. This package is a custom publisher that we use to enable automatic creation of CloudWatch metrics in AWS for Dashboards, Alerting, and other observability use-cases.
 
 ```clojure
-obneyai/grain-core
+obneyai/grain-mulog-aws-cloudwatch-emf-publisher
 {:git/url "https://github.com/ObneyAI/grain.git"
  :sha "8a21606939d82959b03d16151e825e9b1e9e34f7"
  :deps/root "projects/grain-mulog-aws-cloudwatch-emf-publisher"}
