@@ -206,7 +206,6 @@
 
                      "setattr(" module ", '" model-name "Outputs" "', " model-name "Outputs" ")\n"
                      "globals()['" module "." model-name "Outputs" "'] = " model-name "Outputs" "\n")]
-    (spit "blah.py" python-code)
     (py/run-simple-string python-code)
     (py/get-item (py/module-dict (py/import-module "__main__")) (str module "." model-name))))
 
