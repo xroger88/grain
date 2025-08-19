@@ -32,12 +32,12 @@
 
 (defmethod process-command-result ::anom/forbidden
   [{:keys [::anom/message]}]
-  {:status 409
+  {:status 403
    :body {:message message}})
 
 (defmethod process-command-result ::anom/conflict
   [{:keys [::anom/message]}]
-  {:status 403
+  {:status 409
    :body {:message message}})
 
 (defmethod process-command-result :default
