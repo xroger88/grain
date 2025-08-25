@@ -80,7 +80,7 @@ This is the core set of utilities that can power what you see in the example app
 ```clojure
 obneyai/grain-core
 {:git/url "https://github.com/ObneyAI/grain.git"
- :sha "680ddba7e25ea9214d18ee9603b761f08ce4d923"
+ :sha "fbdf1e11e70d8b5c007b70b7d85653eb556dfc33"
  :deps/root "projects/grain-core"}
 ```
 
@@ -91,7 +91,7 @@ This is a Postgres backend for the Event Store component, pull it in and require
 ```clojure
 obneyai/grain-event-store-postgres-v2
 {:git/url "https://github.com/ObneyAI/grain.git"
- :sha "680ddba7e25ea9214d18ee9603b761f08ce4d923"
+ :sha "fbdf1e11e70d8b5c007b70b7d85653eb556dfc33"
  :deps/root "projects/grain-event-store-postgres-v2"}
 ```
 
@@ -104,7 +104,7 @@ We think the dependency on Python is pretty neat! Python is really in the spotli
 ```clojure
 obneyai/grain-dspy-extensions
 {:git/url "https://github.com/ObneyAI/grain.git"
- :sha "680ddba7e25ea9214d18ee9603b761f08ce4d923"
+ :sha "fbdf1e11e70d8b5c007b70b7d85653eb556dfc33"
  :deps/root "projects/grain-dspy-extensions"}
 ```
 
@@ -115,7 +115,7 @@ Grain uses [mulog](https://github.com/BrunoBonacci/mulog) for logging and tracin
 ```clojure
 obneyai/grain-mulog-aws-cloudwatch-emf-publisher
 {:git/url "https://github.com/ObneyAI/grain.git"
- :sha "680ddba7e25ea9214d18ee9603b761f08ce4d923"
+ :sha "fbdf1e11e70d8b5c007b70b7d85653eb556dfc33"
  :deps/root "projects/grain-mulog-aws-cloudwatch-emf-publisher"}
 ```
 
