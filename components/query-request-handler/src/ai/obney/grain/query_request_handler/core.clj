@@ -3,15 +3,13 @@
             [ai.obney.grain.query-schema.interface :as query-schema]
             [ai.obney.grain.time.interface :as time]
             [clojure.core.async :as async]
-            [clojure.walk :as walk]
             [com.brunobonacci.mulog :as u]
             [cognitect.anomalies :as anom]
             [malli.core :as mc]
-            [malli.transform :as mt]
             [malli.error :as me]
             [io.pedestal.http.body-params :as body-params]
-            [clojure.data.json :as json]
-            [ai.obney.grain.query-processor.interface :as qp]))
+            [ai.obney.grain.query-processor.interface :as qp]
+            [cognitect.transit :as transit]))
 
 (defn process-query-result-dispatch
   [result]
@@ -50,24 +48,20 @@
   {:status 200
    :body (or (:query/result result) "OK")})
 
-(def json-transformer
-  (mt/transformer
-   mt/json-transformer))
-
 (defn decode-query
   [query]
-  (as-> query x
-    (clojure.walk/keywordize-keys x)
-    (assoc x :query/id (random-uuid))
-    (assoc x :query/timestamp (time/now))
-    (mc/decode ::query-schema/query x json-transformer)
-    (mc/decode (:query/name x) x json-transformer)))
+  (-> query
+      (assoc :query/id (random-uuid))
+      (assoc :query/timestamp (time/now))))
 
 (defn prep-response
   [response]
   (-> response
-      (assoc-in [:headers "Content-Type"] "application/json")
-      (update :body json/write-str)))
+      (assoc-in [:headers "Content-Type"] "application/transit+json")
+      (update :body (fn [data]
+                      (let [out (java.io.ByteArrayOutputStream.)]
+                        (transit/write (transit/writer out :json) data)
+                        (.toString out))))))
 
 (defn handle-query [config {:keys [request] :as context}]
   (async/go
@@ -75,7 +69,7 @@
      ::handle-query
      [::request request]
      (try
-       (let [query (decode-query (get-in request [:json-params :query]))]
+       (let [query (decode-query (get-in request [:transit-params :query]))]
          (if-let [error (me/humanize (mc/explain ::query-schema/query query))]
            (assoc context :response
                   (prep-response

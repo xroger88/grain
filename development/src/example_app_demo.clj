@@ -87,7 +87,8 @@
     (:body
      (http/post
       "http://localhost:8080/command"
-      {:content-type :json
+      {:content-type :transit+json
+       :as :transit+json
        :form-params {:command {:command/name :example/create-counter
                                :name "Counter C"}}}))
     (catch Exception e (ex-data e)))
@@ -98,10 +99,12 @@
       (:body
        (http/post
         "http://localhost:8080/query"
-        {:content-type :json
-         :as :json
+        {:content-type :transit+json
+         :as :transit+json
          :form-params {:query {:query/name :example/counters}}}))
       (catch Exception e (ex-data e))))
+
+  
 
   ;; Increment first counter
 
@@ -109,9 +112,10 @@
     (:body
      (http/post
       "http://localhost:8080/command"
-      {:content-type :json
+      {:content-type :transit+json
+       :as :transit+json
        :form-params {:command {:command/name :example/increment-counter
-                               :counter-id (-> counters first :id)}}}))
+                               :counter-id (-> counters first :counter/id)}}}))
     (catch Exception e (ex-data e)))
 
   ;; Decrement a counter by ID
@@ -120,14 +124,16 @@
     (:body
      (http/post
       "http://localhost:8080/command"
-      {:content-type :json
+      {:content-type :transit+json
+       :as :transit+json
        :form-params {:command {:command/name :example/decrement-counter
-                               :counter-id (-> counters first :id)}}}))
+                               :counter-id (-> counters first :counter/id)}}}))
     (catch Exception e (ex-data e)))
 
 
   
 
+  
   
 
   ""

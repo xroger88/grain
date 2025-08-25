@@ -4,14 +4,12 @@
             [ai.obney.grain.command-processor.interface :as cp]
             [ai.obney.grain.time.interface :as time]
             [clojure.core.async :as async]
-            [clojure.walk :as walk]
             [com.brunobonacci.mulog :as u]
             [cognitect.anomalies :as anom]
             [malli.core :as mc]
-            [malli.transform :as mt]
             [malli.error :as me]
             [io.pedestal.http.body-params :as body-params]
-            [clojure.data.json :as json]))
+            [cognitect.transit :as transit]))
 
 (defn process-command-result-dispatch
   [result]
@@ -50,24 +48,20 @@
   {:status 200
    :body (or (:command/result result) "OK")})
 
-(def json-transformer
-  (mt/transformer
-   mt/json-transformer))
-
 (defn decode-command
   [command]
-  (as-> command x
-    (clojure.walk/keywordize-keys x)
-    (assoc x :command/id (random-uuid))
-    (assoc x :command/timestamp (time/now))
-    (mc/decode ::command-schema/command x json-transformer)
-    (mc/decode (:command/name x) x json-transformer)))
+  (-> command
+      (assoc :command/id (random-uuid))
+      (assoc :command/timestamp (time/now))))
 
 (defn prep-response 
   [response]
   (-> response
-      (assoc-in [:headers "Content-Type"] "application/json")
-      (update :body json/write-str)))
+      (assoc-in [:headers "Content-Type"] "application/transit+json")
+      (update :body (fn [data]
+                      (let [out (java.io.ByteArrayOutputStream.)]
+                        (transit/write (transit/writer out :json) data)
+                        (.toString out))))))
 
 (defn handle-command [config {:keys [request] :as context}]
   (async/go
@@ -75,7 +69,7 @@
      ::handle-command
      [::request request]
      (try
-       (let [command (decode-command (get-in request [:json-params :command]))]
+       (let [command (decode-command (get-in request [:transit-params :command]))]
          (if-let [error (me/humanize (mc/explain ::command-schema/command command))]
            (assoc context :response
                   (prep-response
