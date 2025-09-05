@@ -63,7 +63,7 @@
                         (transit/write (transit/writer out :json) data)
                         (.toString out))))))
 
-(defn handle-command [config {:keys [request] :as context}]
+(defn handle-command [grain-context {:keys [request] :as http-context}]
   (async/go
     (u/trace
      ::handle-command
@@ -71,16 +71,18 @@
      (try
        (let [command (decode-command (get-in request [:transit-params :command]))]
          (if-let [error (me/humanize (mc/explain ::command-schema/command command))]
-           (assoc context :response
+           (assoc http-context :response
                   (prep-response
                    (process-command-result
                     {::anom/category ::anom/incorrect
                      ::anom/message "Invalid Command"
                      :error/explain error})))
-           (let [result (async/<! (async/thread (cp/process-command (assoc config :command command))))]
+           (let [result (async/<! (async/thread (cp/process-command (assoc (merge grain-context 
+                                                                                  (:grain/additional-context http-context)) 
+                                                                           :command command))))]
              (when (anomaly? result)
                (u/log ::anomaly ::anom/anomaly result))
-             (assoc context
+             (assoc http-context
                     :response (-> result process-command-result prep-response)
                     :grain/command command
                     :grain/command-result result))))
