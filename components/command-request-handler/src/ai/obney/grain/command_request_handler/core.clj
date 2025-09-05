@@ -77,18 +77,13 @@
                     {::anom/category ::anom/incorrect
                      ::anom/message "Invalid Command"
                      :error/explain error})))
-           (let [result (async/<! (async/thread (cp/process-command (assoc config :command command))))
-                 http-response-fn (get-in config [:command-registry (:command/name command) :http-response-fn])]
+           (let [result (async/<! (async/thread (cp/process-command (assoc config :command command))))]
              (when (anomaly? result)
                (u/log ::anomaly ::anom/anomaly result))
-             (let [initial-response (process-command-result result)]
-               (assoc context :response
-                      (prep-response
-                       (if http-response-fn
-                         (http-response-fn
-                          {:response initial-response
-                           :command-result result})
-                         initial-response)))))))
+             (assoc context
+                    :response (-> result process-command-result prep-response)
+                    :grain/command command
+                    :grain/command-result result))))
        (catch Exception e (u/log ::error :error e))))))
 
 (defn interceptor
