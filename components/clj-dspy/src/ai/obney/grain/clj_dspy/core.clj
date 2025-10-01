@@ -5,50 +5,50 @@
             [malli.registry :as mr]
             [clojure.string :as str]))
 
+;; modified by xroger88 to handle optinal map
 (defn malli-schema->python-type
   "Convert a Malli schema to a Python type string."
   [schema]
-  (cond
-    ;; Basic types
-    (= schema :string) "str"
-    (= schema :int) "int"
-    (= schema :double) "float"
-    (= schema :boolean) "bool"
-    (= schema :any) "Any"
+  (letfn [(children [schema]
+            (if (map? (second schema)) ;; optinal map?
+              (drop 2 schema)
+              (rest schema)))]
+    (cond
+      ;; Basic types
+      (= schema :string) "str"
+      (= schema :int) "int"
+      (= schema :double) "float"
+      (= schema :boolean) "bool"
+      (= schema :any) "Any"
 
-    ;; Collections
-    (and (vector? schema) (= (first schema) :vector))
-    (str "List[" (malli-schema->python-type (second schema)) "]")
+      ;; Collections
+      (and (vector? schema) (= (first schema) :vector))
+      (str "List[" (malli-schema->python-type (first (children schema))) "]")
 
-    (and (vector? schema) (= (first schema) :map))
-    (let [entries (if (map? (second schema))
-                    (drop 2 schema)
-                    (rest schema))]
+      (and (vector? schema) (= (first schema) :map))
       (str "TypedDict('" (gensym "T") "', {"
-           (str/join ", " (map (fn [[k o v]] 
-                                 (str "\"" (name k) "\": " (malli-schema->python-type (or v o))))
-                               entries))
-           "})"))
-    
+        (str/join ", " (map (fn [[k o v]]
+                              (str "\"" (name k) "\": " (malli-schema->python-type (or v o))))
+                         (children schema)))
+        "})")
 
-    ;; Optional types
-    (and (vector? schema) (= (first schema) :maybe))
-    (str "Optional[" (malli-schema->python-type (second schema)) "]")
+      ;; Optional types
+      (and (vector? schema) (= (first schema) :maybe))
+      (str "Optional[" (malli-schema->python-type (first (children schema))) "]")
 
-    ;; Union types
-    (and (vector? schema) (= (first schema) :or))
-    (str "Union[" (str/join ", " (map malli-schema->python-type (rest schema))) "]")
+      ;; Union types
+      (and (vector? schema) (= (first schema) :or))
+      (str "Union[" (str/join ", " (map malli-schema->python-type (children schema))) "]")
 
-    ;; Enum types
-    (and (vector? schema) (= (first schema) :enum))
-    "str"  ; Pydantic will handle enum validation
-    
-    (and (vector? schema)
-         (keyword? (first schema)))
-    (malli-schema->python-type (first schema))
+      ;; Enum types
+      (and (vector? schema) (= (first schema) :enum))
+      "str"  ; Pydantic will handle enum validation
 
-    ;; Default fallback
-    :else "Any"))
+      (and (vector? schema) (keyword? (first schema)))
+      (malli-schema->python-type (first schema))
+
+      ;; Default fallback
+      :else "Any")))
 
 (defn expand-with-props
   "Fully expand `schema` using `registry` (map/atom/registry), preserving node + per-key option maps.
@@ -111,7 +111,9 @@
                                [(first xs) (rest xs)]
                                [nil xs])
              props (merge opts (m/properties node))
-             kids  (mapv #(expand-with-props reg % seen) children)]
+             kids  (if (= t :enum) ;; added by xroger88
+                     children
+                     (mapv #(expand-with-props reg % seen) children))]
          (into [t]
                (cond-> []
                  (seq props) (conj props)
@@ -206,15 +208,17 @@
 
                      "setattr(" module ", '" model-name "Outputs" "', " model-name "Outputs" ")\n"
                      "globals()['" module "." model-name "Outputs" "'] = " model-name "Outputs" "\n")]
-    (py/run-simple-string python-code)
+    (py/run-simple-string python-code #_(doto python-code prn))
     (py/get-item (py/module-dict (py/import-module "__main__")) (str module "." model-name))))
 
+;; modified by xroger88 to handle dynamic docstring(instruction)
 (defmacro defsignature
   "Core implementation of defsignature macro."
   [name & args]
-  (let [[docstring spec] (if (string? (first args))
-                           [(first args) (second args)]
-                           [nil (first args)])
+  (let [[docstring spec] (cond
+                           (keyword? (first args)) [(-> (first args) symbol resolve deref) (second args)]
+                           (string? (first args)) [(first args) (second args)]
+                           :else [nil (first args)])
         {:keys [inputs outputs]} spec
         clj-namespace (str *ns*)
         module (-> clj-namespace (str/replace #"\." "_") (str/replace #"-" "_"))
@@ -227,7 +231,7 @@
     `(do
        (let [signature-class# (generate-signature ~(str name) ~docstring ~inputs ~outputs ~module)]
          (def ~(with-meta name (merge signature-metadata
-                                      (when docstring {:doc docstring})))
+                                (when docstring {:doc docstring})))
            signature-class#)))))
 
 

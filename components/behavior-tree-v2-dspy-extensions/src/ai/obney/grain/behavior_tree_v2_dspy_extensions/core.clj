@@ -36,8 +36,8 @@
               (let [field-name (name output-key)
                     output-value (py/get-attr result* field-name)
                     clj-value (let [v (py/->jvm output-value)]
-                                (cond
-                                  (map? v) (walk/keywordize-keys v)
+                                (cond ;; modifyed by xroger88, map? -> coll?
+                                  (coll? v) (walk/keywordize-keys v)
                                   :else v))]
                 (assoc acc output-key clj-value)))
             {} output-keys)))
